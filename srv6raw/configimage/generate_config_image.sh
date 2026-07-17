@@ -17,6 +17,11 @@
 
 set -euo pipefail
 
+if ! echo '{}' | yq -y '.' > /dev/null 2>&1; then
+    echo "ERROR: python yq required (pip install yq)" >&2
+    exit 1
+fi
+
 SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APPLIANCE_CACHE="${SCRIPTDIR}/../appliance/cache"
 
