@@ -1,5 +1,17 @@
 # OpenPERouter on OpenShift — Day-0 Deployment
 
+> **IMPORTANT — `yq` version requirement**
+>
+> These scripts require the **Python `yq`** wrapper (not Go's `mikefarah/yq`).
+> The two tools share the same binary name but have incompatible flag sets.
+>
+> Install the correct one:
+> ```bash
+> pip install yq
+> ```
+> Verify with: `echo '{}' | yq -y '.'` — it should output `{}\n`.
+> If you see errors or get no YAML output, you have the wrong `yq`.
+
 Day-0 deployment of [OpenPERouter](https://github.com/openshift/openperouter) on
 bare-metal OpenShift clusters using the appliance installer. OpenPERouter is
 baked into the appliance ISO and configured via MachineConfig, so networking is
