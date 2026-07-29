@@ -178,7 +178,26 @@ else
     MCS_IGN_FILE="/tmp/worker-mcs.ign"
     log "Waiting for production MCS worker ignition at https://192.168.110.10:22623/config/worker..."
     while true; do
-        if curl -k -s --connect-timeout 5 --max-time 30 -o "$MCS_IGN_FILE" "https://192.168.110.10:22623/config/worker" 2>/dev/null && \
+        ip=192.168.110.10
+        # The neighbor entry can become stuck (note, not STALE, the entry actually remains REACHABLE but with the
+        # wrong MAC address mapping) through the following mechanism: The API VIP pivots to another master, and
+        # keepalived's GARP never makes it to the workers via the EVPN tunnels (the question is still, why?).
+        # The worker node tries to reach the VIP every x seconds via the old master's (master-0) MAC address. The TCP 
+        # SYN is encapsulated, sent to master-0 via the EVPN tunnel where it is decapsulated and reencapsulated and sent
+        # towards the new correct owner of the API VIP (master-1 or master-2).
+        # The return SYN/ACK packet from master-1 or master-2 (with the correct IP + new MAC combination) is directly
+        # sent from the new owner of the VIP via EVPN to the worker node. However, only ARP replies update the ARP table,
+        # the kernel won't learn the new IP/MAC mapping from the SYN/ACK and it will send the ACK for the three way
+        # handshake again to master-0 due to the old ARP entry in the table. That last ACK is dropped by master-0
+        # because it never saw the SYN/ACK.
+        # The ARP entry also never times out (it remains REACHABLE) and never goes to PROBE as the host can be reached
+        # via this asymmetric path (the SYN/ACK makes it back to the worker), and the curls always happen before the
+        # entry can go into STALE -> DELAY -> PROBE.
+        # Therefore, the kernel never replaces the old MAC address in the neighbor table with the correct one that it
+        # sees in the reply.
+        # Delete the neighbor entry to avoid this scenario.
+        ip neigh del $(ip neigh | awk '/'$ip'/ { $NF=""; print $0}')
+        if curl -k -s --connect-timeout 5 --max-time 30 -o "$MCS_IGN_FILE" "https://${ip}:22623/config/worker" 2>/dev/null && \
            [ -s "$MCS_IGN_FILE" ] && jq -e '.ignition.version' "$MCS_IGN_FILE" >/dev/null 2>&1; then
             log "Got worker ignition from production MCS ($(wc -c < "$MCS_IGN_FILE") bytes)"
             break
