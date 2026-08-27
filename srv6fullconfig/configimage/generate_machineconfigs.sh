@@ -47,4 +47,16 @@ if [[ -f "${SCRIPTDIR}/registry-worker.bu" ]]; then
         -o "${output_dir}/01-worker-registry.yaml"
 fi
 
+echo "  set-cluster-mtu.yaml"
+cat <<'EOF' > "${output_dir}/set-cluster-mtu.yaml"
+apiVersion: operator.openshift.io/v1
+kind: Network
+metadata:
+  name: cluster
+spec:
+  defaultNetwork:
+    ovnKubernetesConfig:
+      mtu: 1350
+EOF
+
 echo "==> MachineConfig manifests generated."
