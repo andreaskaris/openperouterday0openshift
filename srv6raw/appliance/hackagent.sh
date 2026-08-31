@@ -32,6 +32,8 @@ fi
 cat > "$HACK_SCRIPT_FILE" << 'HACKSCRIPT_EOF'
 #!/bin/bash
 
+set -x
+
 LOG_FILE="/tmp/ignition-hack.log"
 URL="https://192.168.110.2:22623/config/master"
 IGN_FILE="/tmp/master-mcs-server.ign"
@@ -389,5 +391,8 @@ sudo coreos-installer iso ignition remove "$OUTPUT_ISO" 2>/dev/null || true
 
 echo "Embedding modified ignition into ISO..."
 sudo coreos-installer iso ignition embed -i "$MODIFIED_IGN" "$OUTPUT_ISO"
+
+# https://access.redhat.com/solutions/6178742
+sudo coreos-installer iso kargs modify --append console=ttyS0,115200n8 "$OUTPUT_ISO"
 
 echo "Done! Modified ISO: $OUTPUT_ISO"
