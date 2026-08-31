@@ -33,7 +33,10 @@ fi
 
 # Load environment variables with defaults
 BGP_AS="${BGP_AS:-65500}"
-RR_NODE_IDX="${RR_NODE_IDX:-2}"
+CLUSTER_ID="${CLUSTER_ID:-10.255.255.255}"
+RR_NODE_IDX_0="${RR_NODE_IDX_0:-2}"
+RR_NODE_IDX_1="${RR_NODE_IDX_1:-3}"
+RR_NODE_IDX_2="${RR_NODE_IDX_2:-4}"
 TOR_LOOPBACK="${TOR_LOOPBACK:-fc00:0:20::1}"
 VRF_NAME="${VRF_NAME:-red}"
 L2_VNI="${L2_VNI:-210}"
@@ -73,22 +76,23 @@ log "  ISIS_NET=$ISIS_NET"
 #
 log_step "Determining node role"
 
-if [[ "$LAST_OCTET" == "$RR_NODE_IDX" ]]; then
-    log "This node is the EVPN/VPN Route Reflector (idx=$LAST_OCTET)"
-    CONFIG_TEMPLATE="${TEMPLATE_DIR}/openpe_evpn.yaml_rr.template"
+# In a redundant design, all nodes (including the masters) are route reflector clients to the 3 masters.
+export RR_LOOPBACK_0="fc00:0:${RR_NODE_IDX_0}::1"
+export RR_LOOPBACK_1="fc00:0:${RR_NODE_IDX_1}::1"
+export RR_LOOPBACK_2="fc00:0:${RR_NODE_IDX_2}::1"
 
+# In a redundant design, the 3 masters all function as route reflectors.
+if [[ "$LAST_OCTET" == "$RR_NODE_IDX_0" ]] || 
+   [[ "$LAST_OCTET" == "$RR_NODE_IDX_1" ]] || 
+   [[ "$LAST_OCTET" == "$RR_NODE_IDX_2" ]]; then
+    log "This node is an EVPN/VPN Route Reflector (idx=$LAST_OCTET, RR0=${RR_LOOPBACK_0}, RR1=${RR_LOOPBACK_1}, RR2=${RR_LOOPBACK_2})"
+    CONFIG_TEMPLATE="${TEMPLATE_DIR}/openpe_evpn.yaml_rr.template"
     EVPN_LISTEN_RANGE="${EVPN_LISTEN_RANGE:-fc00::/16}"
     export EVPN_LISTEN_RANGE
-
     log "  EVPN listen range: $EVPN_LISTEN_RANGE"
 else
-    log "This node is an EVPN/VPN client (idx=$LAST_OCTET, RR=$RR_NODE_IDX)"
+    log "This node is an EVPN/VPN client (idx=${LAST_OCTET}, RR0=${RR_LOOPBACK_0}, RR1=${RR_LOOPBACK_1}, RR2=${RR_LOOPBACK_2})"
     CONFIG_TEMPLATE="${TEMPLATE_DIR}/openpe_evpn.yaml.template"
-
-    RR_LOOPBACK="fc00:0:${RR_NODE_IDX}::1"
-    export RR_LOOPBACK
-
-    log "  RR loopback: $RR_LOOPBACK"
 fi
 
 export TOR_LOOPBACK
@@ -114,7 +118,7 @@ log_step "Rendering configuration from template"
 mkdir -p "$(dirname "$CONFIG_OUTPUT")"
 
 # Export all variables for envsubst
-export NODE_NAME UNDERLAY_NIC BGP_AS ROUTER_ID LOOPBACK_V6
+export NODE_NAME UNDERLAY_NIC BGP_AS ROUTER_ID LOOPBACK_V6 CLUSTER_ID
 export SRV6_SOURCE SRV6_PREFIX SRV6_NODE_ID ISIS_NET
 export VRF_NAME BR0_IP BR0_IP_V6 BR0_SUBNET BR0_SUBNET_V6 L2_GATEWAY_IP L2_GATEWAY_IP_V6 L2_VNI
 
