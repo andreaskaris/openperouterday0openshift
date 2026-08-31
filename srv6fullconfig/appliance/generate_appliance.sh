@@ -15,6 +15,7 @@
 # Requires: coreos-installer, jq, yq, butane, podman
 
 set -euo pipefail
+set -x
 
 if ! echo '{}' | yq -y '.' > /dev/null 2>&1; then
     echo "ERROR: python yq required (pip install yq)" >&2
@@ -75,7 +76,7 @@ sudo podman run -it --rm --privileged --net=host \
 
 sudo podman run -it --rm --pull newer --privileged --net=host \
     -v "${asset_dir}:/assets:Z" \
-    "${APPLIANCE_IMAGE}" build live-iso --log-level=debug
+    "${APPLIANCE_IMAGE}" build live-iso --log-level=trace
 
 appliance_iso="${asset_dir}/appliance.iso"
 
