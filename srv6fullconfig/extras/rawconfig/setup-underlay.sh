@@ -127,6 +127,11 @@ SRV6_NODE_ID="${LAST_OCTET}"
 UNDERLAY_V6="fc00:100::${LAST_OCTET}"
 ISIS_NET="${ISIS_AREA}.0000.0000.$(printf '%04d' "${LAST_OCTET}").00"
 
+IPV4_TUNNEL_CIDR="100.65.0.0/24"
+IPV6_TUNNEL_CIDR="fd00::/64"
+ISIS_BASENET="${ISIS_AREA}.0000.0000.0000.00"
+SRV6_LOCATOR_PREFIX="fd00:1234::/48"
+
 BR0_IP_V6=""
 BR0_V6_ELAPSED=0
 while [[ -z "$BR0_IP_V6" ]]; do
@@ -153,128 +158,10 @@ log "  SRv6 source:         $SRV6_SOURCE"
 log "  SRv6 locator:        $SRV6_PREFIX:$SRV6_NODE_ID::/48"
 log "  Underlay IPv6:       $UNDERLAY_V6"
 log "  ISIS NET:            $ISIS_NET"
-
-#
-# STEP 3: Move host NIC to FRR namespace
-#
-log_step "Moving host NIC to FRR namespace"
-
-if ! ip link show "$UNDERLAY_NIC" >/dev/null 2>&1; then
-    error "Host NIC $UNDERLAY_NIC not found"
-    error "Available NICs:"
-    ip -br link show | head -10 | while read line; do
-        error "  $line"
-    done
-    exit_error "Host NIC $UNDERLAY_NIC not found"
-fi
-
-log "Found host NIC: $UNDERLAY_NIC"
-
-NIC_IP_CIDR=$(ip -4 addr show "$UNDERLAY_NIC" | grep -oP '(?<=inet\s)\d+(\.\d+){3}/\d+' | head -1 || true)
-if [[ -z "$NIC_IP_CIDR" ]]; then
-    log "WARNING: Host NIC $UNDERLAY_NIC does not have an IPv4 address configured"
-else
-    log "Host NIC IPv4 address: $NIC_IP_CIDR (will be re-assigned after move)"
-fi
-
-NIC_IP6_CIDR=$(ip -6 addr show "$UNDERLAY_NIC" scope global | grep -oP '(?<=inet6\s)[0-9a-f:]+/\d+' | head -1 || true)
-if [[ -z "$NIC_IP6_CIDR" ]]; then
-    log "WARNING: Host NIC $UNDERLAY_NIC does not have a global IPv6 address configured"
-else
-    log "Host NIC IPv6 address: $NIC_IP6_CIDR (will be re-assigned after move)"
-fi
-
-FRR_PID=$(frr_netns_pid)
-if [[ -z "$FRR_PID" || "$FRR_PID" == "0" ]]; then
-    error "Failed to get FRR container PID"
-    exit_error "Cannot determine FRR namespace"
-fi
-
-log "FRR container PID: $FRR_PID"
-
-# Move NIC to FRR namespace
-log "Moving $UNDERLAY_NIC to FRR namespace (PID: $FRR_PID)..."
-ip link set "$UNDERLAY_NIC" netns "$FRR_PID" 2>/dev/null || {
-    log "WARNING: Failed to move $UNDERLAY_NIC to namespace (may already be there)"
-}
-
-# Bring up NIC in FRR namespace
-log "Bringing up $UNDERLAY_NIC in FRR namespace..."
-inns ip link set "$UNDERLAY_NIC" up 2>/dev/null || {
-    log "WARNING: Failed to bring up $UNDERLAY_NIC in FRR namespace"
-}
-
-# Re-assign IPv4 address
-if [[ -n "$NIC_IP_CIDR" ]]; then
-    log "Re-assigning IP $NIC_IP_CIDR to $UNDERLAY_NIC in FRR namespace..."
-    inns ip addr add "$NIC_IP_CIDR" dev "$UNDERLAY_NIC" 2>/dev/null || {
-        log "WARNING: Failed to assign IP (may already be configured)"
-    }
-    log "IP $NIC_IP_CIDR assigned to $UNDERLAY_NIC in FRR namespace"
-fi
-
-# Re-assign global IPv6 address
-if [[ -n "$NIC_IP6_CIDR" ]]; then
-    log "Re-assigning IPv6 $NIC_IP6_CIDR to $UNDERLAY_NIC in FRR namespace..."
-    inns ip -6 addr add "$NIC_IP6_CIDR" dev "$UNDERLAY_NIC" 2>/dev/null || {
-        log "WARNING: Failed to assign IPv6 (may already be configured)"
-    }
-    log "IPv6 $NIC_IP6_CIDR assigned to $UNDERLAY_NIC in FRR namespace"
-fi
-
-# Add IPv6 address to underlay NIC for ISIS adjacency
-log "Adding IPv6 $UNDERLAY_V6/64 to $UNDERLAY_NIC in FRR namespace..."
-inns ip -6 addr add "${UNDERLAY_V6}/64" dev "$UNDERLAY_NIC" 2>/dev/null || {
-    log "WARNING: IPv6 address may already be configured"
-}
-
-log "Host NIC $UNDERLAY_NIC configured in FRR namespace"
-
-#
-# STEP 4: Configure loopback addresses and SRv6 sysctls in FRR namespace
-#
-log_step "Configuring loopback addresses and SRv6 in FRR namespace"
-
-# IPv6 loopback for BGP peering
-log "Adding IPv6 loopback $LOOPBACK_V6/128 to lo..."
-inns ip -6 addr add "${LOOPBACK_V6}/128" dev lo 2>/dev/null || {
-    log "WARNING: IPv6 loopback may already be configured"
-}
-
-# SRv6 source address on loopback
-log "Adding SRv6 source $SRV6_SOURCE/128 to lo..."
-inns ip -6 addr add "${SRV6_SOURCE}/128" dev lo 2>/dev/null || {
-    log "WARNING: SRv6 source may already be configured"
-}
-
-inns ip link set lo up 2>/dev/null || true
-
-# SRv6 sysctls
-log "Setting SRv6 sysctls..."
-inns sysctl -w net.ipv6.seg6_flowlabel=1 || {
-    log "WARNING: Failed to set seg6_flowlabel (kernel support required)"
-}
-inns sysctl -w net.ipv6.conf.all.seg6_enabled=1 || {
-    log "WARNING: Failed to enable seg6 (kernel support required)"
-}
-inns sysctl -w net.ipv6.conf.default.seg6_enabled=1 || true
-inns sysctl -w "net.ipv6.conf.${UNDERLAY_NIC}.seg6_enabled=1" || true
-inns sysctl -w net.ipv6.conf.lo.seg6_enabled=1 || true
-
-# Create sr0 dummy interface for SRv6 SID installation in the kernel
-log "Creating sr0 dummy interface for SRv6..."
-inns ip link add sr0 type dummy 2>/dev/null || true
-inns ip link set sr0 up || true
-inns sysctl -w net.ipv6.conf.sr0.seg6_enabled=1 || true
-
-# NOTE: vrf.strict_mode and rp_filter are set in setup-network.sh
-# (after VRF creation, so the kernel module is loaded)
-
-# IP forwarding
-inns sysctl -w net.ipv4.ip_forward=1 || true
-inns sysctl -w net.ipv6.conf.all.forwarding=1 || true
-
-log "Loopback and SRv6 configuration complete"
+log "  IPV4_TUNNEL_CIDR:    $IPV4_TUNNEL_CIDR"
+log "  IPV6_TUNNEL_CIDR:    $IPV6_TUNNEL_CIDR"
+log "  ISIS_BASENET:        $ISIS_BASENET"
+log "  SRV6_LOCATOR_PREFIX: $SRV6_LOCATOR_PREFIX"
 
 #
 # STEP 5: Save variables for config generation
@@ -315,9 +202,13 @@ UNDERLAY_V6="$UNDERLAY_V6"
 # ISIS
 ISIS_NET="$ISIS_NET"
 
+IPV4_TUNNEL_CIDR="${IPV4_TUNNEL_CIDR}"
+IPV6_TUNNEL_CIDR="${IPV6_TUNNEL_CIDR}"
+ISIS_BASENET="${ISIS_BASENET}"
+SRV6_LOCATOR_PREFIX="${SRV6_LOCATOR_PREFIX}"
+
 # Underlay NIC
 UNDERLAY_NIC="$UNDERLAY_NIC"
-FRR_PID="$FRR_PID"
 EOF
 
 chmod 644 "$VARS_FILE"
