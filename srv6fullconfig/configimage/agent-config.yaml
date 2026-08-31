@@ -41,6 +41,18 @@ hosts:
         enabled: false
       ipv6:
         enabled: false
+    - name: nodeidx
+      type: dummy
+      state: up
+      ipv4:
+        enabled: true
+        auto-dns: false
+        address:
+        - ip: 192.0.2.2
+          prefix-length: 24
+        dhcp: false
+      ipv6:
+        enabled: false
     - name: enp2s0
       type: ethernet
       state: up
@@ -123,6 +135,18 @@ hosts:
       state: up
       ipv4:
         enabled: false
+      ipv6:
+        enabled: false
+    - name: nodeidx
+      type: dummy
+      state: up
+      ipv4:
+        enabled: true
+        auto-dns: false
+        address:
+        - ip: 192.0.2.3
+          prefix-length: 24
+        dhcp: false
       ipv6:
         enabled: false
     - name: enp2s0
@@ -209,6 +233,18 @@ hosts:
         enabled: false
       ipv6:
         enabled: false
+    - name: nodeidx
+      type: dummy
+      state: up
+      ipv4:
+        enabled: true
+        auto-dns: false
+        address:
+        - ip: 192.0.2.4
+          prefix-length: 24
+        dhcp: false
+      ipv6:
+        enabled: false
     - name: enp2s0
       type: ethernet
       state: up
@@ -293,6 +329,18 @@ hosts:
         enabled: false
       ipv6:
         enabled: false
+    - name: nodeidx
+      type: dummy
+      state: up
+      ipv4:
+        enabled: true
+        auto-dns: false
+        address:
+        - ip: 192.0.2.5
+          prefix-length: 24
+        dhcp: false
+      ipv6:
+        enabled: false
     - name: enp2s0
       type: ethernet
       state: up
@@ -375,6 +423,18 @@ hosts:
       state: up
       ipv4:
         enabled: false
+      ipv6:
+        enabled: false
+    - name: nodeidx
+      type: dummy
+      state: up
+      ipv4:
+        enabled: true
+        auto-dns: false
+        address:
+        - ip: 192.0.2.6
+          prefix-length: 24
+        dhcp: false
       ipv6:
         enabled: false
     - name: enp2s0
