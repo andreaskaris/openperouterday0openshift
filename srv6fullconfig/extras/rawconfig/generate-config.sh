@@ -40,6 +40,7 @@ RR_NODE_IDX_2="${RR_NODE_IDX_2:-4}"
 TOR_LOOPBACK="${TOR_LOOPBACK:-fc00:0:20::1}"
 VRF_NAME="${VRF_NAME:-red}"
 L2_VNI="${L2_VNI:-210}"
+L3_VPN="${L2_VNI:-310}"
 L2_GATEWAY_IP="${L2_GATEWAY_IP:-192.168.110.1/24}"
 L2_GATEWAY_IP_V6="${L2_GATEWAY_IP_V6:-fd00:110::1/64}"
 
@@ -70,6 +71,10 @@ log "  NODE_NAME=$NODE_NAME, LAST_OCTET=$LAST_OCTET"
 log "  ROUTER_ID=$ROUTER_ID, LOOPBACK_V6=$LOOPBACK_V6"
 log "  SRV6_SOURCE=$SRV6_SOURCE, SRV6_PREFIX=$SRV6_PREFIX, SRV6_NODE_ID=$SRV6_NODE_ID"
 log "  ISIS_NET=$ISIS_NET"
+log "  IPV4_TUNNEL_CIDR:    $IPV4_TUNNEL_CIDR"
+log "  IPV6_TUNNEL_CIDR:    $IPV6_TUNNEL_CIDR"
+log "  ISIS_BASENET:        $ISIS_BASENET"
+log "  SRV6_LOCATOR_PREFIX: $SRV6_LOCATOR_PREFIX"
 
 #
 # STEP 2: Determine role and select template
@@ -77,9 +82,9 @@ log "  ISIS_NET=$ISIS_NET"
 log_step "Determining node role"
 
 # In a redundant design, all nodes (including the masters) are route reflector clients to the 3 masters.
-export RR_LOOPBACK_0="fc00:0:${RR_NODE_IDX_0}::1"
-export RR_LOOPBACK_1="fc00:0:${RR_NODE_IDX_1}::1"
-export RR_LOOPBACK_2="fc00:0:${RR_NODE_IDX_2}::1"
+export RR_LOOPBACK_0="fd00::${RR_NODE_IDX_0}"
+export RR_LOOPBACK_1="fd00::${RR_NODE_IDX_1}"
+export RR_LOOPBACK_2="fd00::${RR_NODE_IDX_2}"
 
 # In a redundant design, the 3 masters all function as route reflectors.
 if [[ "$LAST_OCTET" == "$RR_NODE_IDX_0" ]] || 
@@ -121,6 +126,7 @@ mkdir -p "$(dirname "$CONFIG_OUTPUT")"
 export NODE_NAME UNDERLAY_NIC BGP_AS ROUTER_ID LOOPBACK_V6 CLUSTER_ID
 export SRV6_SOURCE SRV6_PREFIX SRV6_NODE_ID ISIS_NET
 export VRF_NAME BR0_IP BR0_IP_V6 BR0_SUBNET BR0_SUBNET_V6 L2_GATEWAY_IP L2_GATEWAY_IP_V6 L2_VNI
+export IPV4_TUNNEL_CIDR IPV6_TUNNEL_CIDR ISIS_BASENET SRV6_LOCATOR_PREFIX
 
 envsubst < "$CONFIG_TEMPLATE" > "$CONFIG_OUTPUT" || {
     error "Failed to render configuration template"
@@ -134,17 +140,12 @@ log "Configuration written to: $CONFIG_OUTPUT"
 #
 log_step "Validating generated configuration"
 
-for section in "rawfrrconfigs:" "router isis PE" "segment-routing" "router bgp"; do
+for section in "underlays:" "${IPV4_TUNNEL_CIDR}" "${IPV6_TUNNEL_CIDR}" "${ISIS_BASENET}" "${SRV6_LOCATOR_PREFIX}"; do
     if ! grep -q "$section" "$CONFIG_OUTPUT"; then
         error "Generated config is missing required section: $section"
         exit_error "Invalid generated configuration"
     fi
 done
-
-if ! grep -q "${ROUTER_ID}" "$CONFIG_OUTPUT"; then
-    error "Generated config is missing Router ID"
-    exit_error "Invalid Router ID in configuration"
-fi
 
 log "Configuration validated successfully"
 
