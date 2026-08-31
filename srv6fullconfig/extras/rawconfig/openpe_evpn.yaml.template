@@ -6,12 +6,11 @@
 #   - EVPN-CLIENTS:     l2vpn evpn only (reflected)
 #
 # Variables:
-#   ${NODE_NAME}, ${UNDERLAY_NIC}, ${BGP_AS}, ${ROUTER_ID}
-#   ${LOOPBACK_V6}, ${SRV6_SOURCE}, ${SRV6_PREFIX}, ${ISIS_NET}
-#   ${VRF_NAME}, ${BR0_IP}, ${BR0_IP_V6}, ${BR0_SUBNET}, ${BR0_SUBNET_V6}
-#   ${TOR_LOOPBACK}
-#   ${EVPN_LISTEN_RANGE}     - IPv6 prefix for dynamic EVPN client peers
-#   ${SRV6_NODE_ID}   - non-zero node-ID for the uSID locator (0x0000 is End-of-Container)
+#   ${UNDERLAY_NIC}, ${BGP_AS}, ${LOOPBACK_V6}, ${TOR_LOOPBACK}
+#   ${VRF_NAME}, ${L2_VNI}, ${L3_VPN}
+#   ${L2_GATEWAY_IP}, ${L2_GATEWAY_IP_V6}
+#   ${IPV4_TUNNEL_CIDR}, ${IPV6_TUNNEL_CIDR}, ${ISIS_BASENET}, ${SRV6_LOCATOR_PREFIX}
+#   ${RR_LOOPBACK_0}, ${RR_LOOPBACK_1}, ${RR_LOOPBACK_2}
 #
 rawfrrconfigs:
   - priority: 100
@@ -58,7 +57,7 @@ l2vnis:
     routingDomain:
       type: L3VPN
       l3vpn:
-        name: red
+        name: ${VRF_NAME}
     vxlanport: 4789
     gatewayIPs:
       - "${L2_GATEWAY_IP}"
@@ -69,10 +68,10 @@ l2vnis:
         lifecycle: External
         name: br0
 l3vpns:
-  - name: red
-    vrf: red
-    rdAssignedNumber: 2
+  - name: ${VRF_NAME}
+    vrf: ${VRF_NAME}
+    rdAssignedNumber: ${L3_VPN}
     exportRTs:
-    - "${BGP_AS}:2"
+    - "${BGP_AS}:${L3_VPN}"
     importRTs:
-    - "${BGP_AS}:2"
+    - "${BGP_AS}:${L3_VPN}"
