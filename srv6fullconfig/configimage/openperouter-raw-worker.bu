@@ -17,11 +17,6 @@ storage:
       overwrite: true
       contents:
         local: rawconfig/setup-underlay.sh
-    - path: /usr/local/bin/setup-network.sh
-      mode: 0755
-      overwrite: true
-      contents:
-        local: rawconfig/setup-network.sh
     - path: /usr/local/bin/generate-config.sh
       mode: 0755
       overwrite: true
@@ -155,40 +150,16 @@ systemd:
 
         [Install]
         WantedBy=multi-user.target
-    - name: setup-network.service
-      enabled: true
-      contents: |
-        [Unit]
-        Description=OpenPERouter Network Infrastructure Setup
-        Documentation=https://github.com/openperouter/openperouter
-        After=setup-underlay.service
-        Requires=setup-underlay.service
-
-        [Service]
-        Type=oneshot
-        RemainAfterExit=yes
-        User=root
-        Group=root
-        EnvironmentFile=-/etc/openperouter/vpn-setup.env
-        ExecStart=/usr/local/bin/setup-network.sh
-        StandardOutput=journal
-        StandardError=journal
-        SyslogIdentifier=setup-network
-        TimeoutStartSec=120
-        TimeoutStopSec=10
-
-        [Install]
-        WantedBy=multi-user.target
     - name: generate-config.service
       enabled: true
       contents: |
         [Unit]
         Description=OpenPERouter Configuration Generator
         Documentation=https://github.com/openperouter/openperouter
-        # Must run after setup-network to avoid kernel NULL deref in vrf_ifindex_lookup_by_table_id
+        # Must run after setup-underlay to avoid kernel NULL deref in vrf_ifindex_lookup_by_table_id
         # when zebra installs SRv6 End.DT routes before the VRF exists (kernel 5.14, RHCOS 9.6)
-        After=setup-network.service
-        Requires=setup-network.service
+        After=setup-underlay.service
+        Requires=setup-underlay.service
 
         [Service]
         Type=oneshot
@@ -212,8 +183,8 @@ systemd:
         [Unit]
         Description=OpenPERouter Bridge Refresher
         Documentation=https://github.com/openperouter/openperouter
-        After=setup-network.service generate-config.service
-        Requires=setup-network.service
+        After=setup-underlay.service generate-config.service
+        Requires=setup-underlay.service
 
         [Service]
         Type=simple
