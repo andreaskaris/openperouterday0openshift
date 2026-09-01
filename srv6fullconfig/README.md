@@ -34,24 +34,23 @@ sequence at boot to configure each node:
 
 | Script | What it does |
 |--------|-------------|
-| `setup-underlay.sh` | Derives all addressing from the br0 IP, moves the underlay NIC into the FRR namespace, configures loopbacks and SRv6 sysctls |
-| `setup-network.sh` | Creates VRF, VXLAN tunnel (VNI), EVPN bridge, and veth pair connecting br-ex to the FRR namespace |
-| `generate-config.sh` | Picks the RR or client template based on node index, renders it with `envsubst` |
+| `setup-underlay.sh` | Waits for FRR and br0, derives the node index (last octet) and loopback IPv6 from the br0 IP |
+| `generate-config.sh` | Picks the master or worker config based on node index, renders rawfrrconfigs template with `envsubst` |
 | `bridge-refresher.sh` | Continuously pings VIPs on the EVPN bridge so ARP entries stay alive and EVPN type-2 routes are advertised |
 | `openperouter-common.sh` | Shared helpers (logging, namespace utilities) sourced by all scripts |
 
 ## FRR Configuration
 
-FRR config is rendered from two templates in `extras/rawconfig/`:
+FRR config is rendered from templates in `extras/rawconfig/`:
 
-- **`openpe_evpn.yaml_rr.template`** — route reflector (master-0): peers with
-  the TOR for L3VPN and reflects EVPN to all other nodes
-- **`openpe_evpn.yaml.template`** — client (all other nodes): peers with the
-  TOR for L3VPN and with the RR for EVPN
+- **`openpe_master_raw.yaml.template`** - holds optional raw configuration for the masters
+- **`openpe_worker_raw.yaml.template`** - holds optional raw configuration for the workers
+- **`openpe_master.yaml`** - holds the OpenPERouter static configuration for the masters
+- **`openpe_worker.yaml`** - holds the OpenPERouter static configuration for the workers
 
-`generate-config.sh` selects the template by comparing the node's last octet
-against `RR_NODE_IDX`, substitutes variables, and writes the result for the
-FRR reloader to apply.
+`generate-config.sh` selects master or worker configs by comparing the node's
+last octet against `RR_NODE_IDX_0/1/2`, copies the static YAML files, renders
+the `_raw.yaml.template` via `envsubst`, and writes the result for FRR to apply.
 
 ## Configuration (vpn-setup.env)
 
@@ -59,20 +58,11 @@ All tunable parameters live in [`extras/rawconfig/vpn-setup.env`](extras/rawconf
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `UNDERLAY_NIC` | `enp2s0` | Physical NIC moved into the FRR namespace for ISIS |
 | `FRR_READY_TIMEOUT` | `60` | Seconds to wait for the FRR container to start |
 | `BR0_READY_TIMEOUT` | `120` | Seconds to wait for br0/br-ex to get an IP |
-| `BGP_AS` | `65500` | iBGP AS number (shared by all nodes) |
-| `RR_NODE_IDX` | `2` | Node index of the EVPN route reflector |
-| `TOR_LOOPBACK` | `fc00:0:20::1` | TOR IPv6 loopback — all nodes peer with this for L3VPN |
-| `EVPN_LISTEN_RANGE` | `fc00::/16` | BGP listen range for dynamic EVPN peers on the RR |
-| `ISIS_AREA` | `49.0001` | ISIS area prefix (nodes derive their NET from this) |
-| `VRF_NAME` | `red` | VRF name |
-| `VRF_TABLE` | `1100` | VRF routing table ID |
-| `L2_VNI` | `210` | VXLAN VNI for the L2 EVPN overlay |
-| `VXLAN_PORT` | `4789` | VXLAN UDP port |
-| `L2_GATEWAY_IP` | `192.168.110.1/24` | Anycast gateway IPv4 on the EVPN bridge |
-| `L2_GATEWAY_IP_V6` | `fd00:110::1/64` | Anycast gateway IPv6 on the EVPN bridge |
+| `L2_VNI` | `210` | VXLAN VNI for the L2 EVPN overlay (bridge-refresher) |
+| `L2_GATEWAY_IP` | `192.168.110.1/24` | Anycast gateway IPv4 on the EVPN bridge (bridge-refresher) |
+| `L2_GATEWAY_IP_V6` | `fd00:110::1/64` | Anycast gateway IPv6 on the EVPN bridge (bridge-refresher) |
 
 ## Building
 

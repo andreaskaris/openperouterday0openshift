@@ -44,16 +44,26 @@ storage:
       contents:
         inline: ""
     # --- Rawconfig templates and env (mode 0644) ---
-    - path: /etc/openperouter/templates/openpe_evpn.yaml.template
+    - path: /etc/openperouter/templates/openpe_master.yaml
       mode: 0644
       overwrite: true
       contents:
-        local: rawconfig/openpe_evpn.yaml.template
-    - path: /etc/openperouter/templates/openpe_evpn.yaml_rr.template
+        local: rawconfig/openpe_master.yaml
+    - path: /etc/openperouter/templates/openpe_worker.yaml
       mode: 0644
       overwrite: true
       contents:
-        local: rawconfig/openpe_evpn.yaml_rr.template
+        local: rawconfig/openpe_worker.yaml
+    - path: /etc/openperouter/templates/openpe_master_raw.yaml.template
+      mode: 0644
+      overwrite: true
+      contents:
+        local: rawconfig/openpe_master_raw.yaml.template
+    - path: /etc/openperouter/templates/openpe_worker_raw.yaml.template
+      mode: 0644
+      overwrite: true
+      contents:
+        local: rawconfig/openpe_worker_raw.yaml.template
     - path: /etc/openperouter/vpn-setup.env
       mode: 0644
       overwrite: true

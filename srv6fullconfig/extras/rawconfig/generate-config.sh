@@ -32,23 +32,15 @@ if [[ -f "$ENV_FILE" ]]; then
 fi
 
 # Load environment variables with defaults
-BGP_AS="${BGP_AS:-65500}"
-CLUSTER_ID="${CLUSTER_ID:-10.255.255.255}"
 RR_NODE_IDX_0="${RR_NODE_IDX_0:-2}"
 RR_NODE_IDX_1="${RR_NODE_IDX_1:-3}"
 RR_NODE_IDX_2="${RR_NODE_IDX_2:-4}"
-TOR_LOOPBACK="${TOR_LOOPBACK:-fc00:0:20::1}"
-VRF_NAME="${VRF_NAME:-red}"
-L2_VNI="${L2_VNI:-210}"
-L3_VPN="${L3_VPN:-2}"
-L2_GATEWAY_IP="${L2_GATEWAY_IP:-192.168.110.1/24}"
-L2_GATEWAY_IP_V6="${L2_GATEWAY_IP_V6:-fd00:110::1/64}"
-
 
 # Paths
 VARS_FILE="${VARS_FILE:-/var/lib/openperouter/vpn-setup.vars}"
 TEMPLATE_DIR="${TEMPLATE_DIR:-/etc/openperouter/templates}"
-CONFIG_OUTPUT="${CONFIG_OUTPUT:-/var/lib/openperouter/configs/openpe_evpn.yaml}"
+CONFIG_OUTPUT_DIR="${CONFIG_OUTPUT_DIR:-/var/lib/openperouter/configs}"
+RENDERED_TEMPLATE_OUTPUT="${RENDERED_TEMPLATE_OUTPUT:-openpe_raw.yaml}"
 
 # Start main execution
 log "Starting configuration generation (ISIS + SRv6 mode)"
@@ -67,14 +59,7 @@ fi
 source "$VARS_FILE"
 
 log "Loaded variables from $VARS_FILE"
-log "  NODE_NAME=$NODE_NAME, LAST_OCTET=$LAST_OCTET"
-log "  ROUTER_ID=$ROUTER_ID, LOOPBACK_V6=$LOOPBACK_V6"
-log "  SRV6_SOURCE=$SRV6_SOURCE, SRV6_PREFIX=$SRV6_PREFIX, SRV6_NODE_ID=$SRV6_NODE_ID"
-log "  ISIS_NET=$ISIS_NET"
-log "  IPV4_TUNNEL_CIDR:    $IPV4_TUNNEL_CIDR"
-log "  IPV6_TUNNEL_CIDR:    $IPV6_TUNNEL_CIDR"
-log "  ISIS_BASENET:        $ISIS_BASENET"
-log "  SRV6_LOCATOR_PREFIX: $SRV6_LOCATOR_PREFIX"
+log "  LAST_OCTET=$LAST_OCTET, LOOPBACK_V6=$LOOPBACK_V6"
 
 #
 # STEP 2: Determine role and select template
@@ -87,27 +72,26 @@ export RR_LOOPBACK_1="fd00::${RR_NODE_IDX_1}"
 export RR_LOOPBACK_2="fd00::${RR_NODE_IDX_2}"
 
 # In a redundant design, the 3 masters all function as route reflectors.
-if [[ "$LAST_OCTET" == "$RR_NODE_IDX_0" ]] || 
-   [[ "$LAST_OCTET" == "$RR_NODE_IDX_1" ]] || 
+NODE_TYPE="worker"
+if [[ "$LAST_OCTET" == "$RR_NODE_IDX_0" ]] ||
+   [[ "$LAST_OCTET" == "$RR_NODE_IDX_1" ]] ||
    [[ "$LAST_OCTET" == "$RR_NODE_IDX_2" ]]; then
-    log "This node is an EVPN/VPN Route Reflector (idx=$LAST_OCTET, RR0=${RR_LOOPBACK_0}, RR1=${RR_LOOPBACK_1}, RR2=${RR_LOOPBACK_2})"
-    CONFIG_TEMPLATE="${TEMPLATE_DIR}/openpe_evpn.yaml_rr.template"
-    EVPN_LISTEN_RANGE="${EVPN_LISTEN_RANGE:-fc00::/16}"
-    export EVPN_LISTEN_RANGE
-    log "  EVPN listen range: $EVPN_LISTEN_RANGE"
-else
-    log "This node is an EVPN/VPN client (idx=${LAST_OCTET}, RR0=${RR_LOOPBACK_0}, RR1=${RR_LOOPBACK_1}, RR2=${RR_LOOPBACK_2})"
-    CONFIG_TEMPLATE="${TEMPLATE_DIR}/openpe_evpn.yaml.template"
+    NODE_TYPE="master"
 fi
-
-export TOR_LOOPBACK
-log "  TOR: $TOR_LOOPBACK"
+log "This node is a ${NODE_TYPE} (idx=${LAST_OCTET}, RR0=${RR_LOOPBACK_0}, RR1=${RR_LOOPBACK_1}, RR2=${RR_LOOPBACK_2})"
 
 #
-# STEP 3: Verify template exists
+# STEP 3: Copy yaml files
+#
+log "Copying files $(ls ${TEMPLATE_DIR}/openpe_${NODE_TYPE}*.yaml) to ${CONFIG_OUTPUT_DIR}"
+cp "${TEMPLATE_DIR}"/openpe_"${NODE_TYPE}"*.yaml "${CONFIG_OUTPUT_DIR}"
+
+#
+# STEP 4: Verify template exists
 #
 log_step "Checking configuration template"
 
+CONFIG_TEMPLATE="${TEMPLATE_DIR}/openpe_${NODE_TYPE}_raw.yaml.template"
 if [[ ! -f "$CONFIG_TEMPLATE" ]]; then
     error "Configuration template not found: $CONFIG_TEMPLATE"
     exit_error "Missing configuration template"
@@ -116,16 +100,15 @@ fi
 log "Using template: $CONFIG_TEMPLATE"
 
 #
-# STEP 4: Render configuration from template using envsubst
+# STEP 5: Render configuration from template using envsubst
 #
 log_step "Rendering configuration from template"
+CONFIG_OUTPUT="${CONFIG_OUTPUT_DIR}/${RENDERED_TEMPLATE_OUTPUT}"
 
-mkdir -p "$(dirname "$CONFIG_OUTPUT")"
+mkdir -p "${CONFIG_OUTPUT_DIR}"
 
-# Export all variables for envsubst
-export UNDERLAY_NIC BGP_AS LOOPBACK_V6 CLUSTER_ID
-export VRF_NAME L2_GATEWAY_IP L2_GATEWAY_IP_V6 L2_VNI L3_VPN
-export IPV4_TUNNEL_CIDR IPV6_TUNNEL_CIDR ISIS_BASENET SRV6_LOCATOR_PREFIX
+# Export variables for envsubst (rawfrrconfigs only)
+export LOOPBACK_V6
 
 envsubst < "$CONFIG_TEMPLATE" > "$CONFIG_OUTPUT" || {
     error "Failed to render configuration template"
@@ -135,22 +118,17 @@ envsubst < "$CONFIG_TEMPLATE" > "$CONFIG_OUTPUT" || {
 log "Configuration written to: $CONFIG_OUTPUT"
 
 #
-# STEP 5: Validate generated configuration
+# STEP 6: Preview generated config
 #
-log_step "Validating generated configuration"
-
-for section in "underlays:" "${IPV4_TUNNEL_CIDR}" "${IPV6_TUNNEL_CIDR}" "${ISIS_BASENET}" "${SRV6_LOCATOR_PREFIX}"; do
-    if ! grep -q "$section" "$CONFIG_OUTPUT"; then
-        error "Generated config is missing required section: $section"
-        exit_error "Invalid generated configuration"
-    fi
-done
-
-log "Configuration validated successfully"
+#
 
 # Show preview
-log "Configuration preview (first 30 lines):"
+log "Configuration preview of rendered files (first 30 lines):"
 head -30 "$CONFIG_OUTPUT" | while IFS= read -r line; do log "  $line"; done
 log "  ..."
+
+log "Configuration preview of rendered files (last 30 lines):"
+log "  ..."
+tail -30 "$CONFIG_OUTPUT" | while IFS= read -r line; do log "  $line"; done
 
 exit_success "Configuration generation completed successfully"

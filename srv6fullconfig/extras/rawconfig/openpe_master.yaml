@@ -1,56 +1,40 @@
 # OpenPERouter FRR Configuration Template — EVPN Route Reflector (ISIS + SRv6)
-# Rendered by generate-config.sh using envsubst
+# Copied by generate-config.sh
 #
 # Peering model:
 #   - TOR (direct):     ipv4 vpn + ipv6 vpn  (SRv6 routes only)
 #   - EVPN-CLIENTS:     l2vpn evpn only (reflected)
-#
-# Variables:
-#   ${UNDERLAY_NIC}, ${BGP_AS}, ${LOOPBACK_V6}, ${CLUSTER_ID}, ${TOR_LOOPBACK}
-#   ${VRF_NAME}, ${L2_VNI}, ${L3_VPN}
-#   ${L2_GATEWAY_IP}, ${L2_GATEWAY_IP_V6}
-#   ${EVPN_LISTEN_RANGE}     - IPv6 prefix for dynamic EVPN client peers
-#   ${IPV4_TUNNEL_CIDR}, ${IPV6_TUNNEL_CIDR}, ${ISIS_BASENET}, ${SRV6_LOCATOR_PREFIX}
-#   ${RR_LOOPBACK_0}, ${RR_LOOPBACK_1}, ${RR_LOOPBACK_2}
-
-rawfrrconfigs:
-  - priority: 100
-    rawConfig: |
-      router bgp ${BGP_AS}
-       neighbor ${RR_LOOPBACK_0} update-source ${LOOPBACK_V6}
-       neighbor ${RR_LOOPBACK_1} update-source ${LOOPBACK_V6}
-       neighbor ${RR_LOOPBACK_2} update-source ${LOOPBACK_V6}
 
 underlays:
-  - asn: ${BGP_AS}
+  - asn: 65500
     tunnelEndpoint:
       cidrs:
-        - ${IPV4_TUNNEL_CIDR}
-        - ${IPV6_TUNNEL_CIDR}
+        - 100.65.0.0/24
+        - fd00::/64
     interfaces:
     - type: NetworkDevice
       networkDevice:
-        interfaceName: ${UNDERLAY_NIC}
+        interfaceName: enp2s0
     routerIDCIDR: 10.0.0.0/24
     isis:
-      baseNet: "${ISIS_BASENET}"
+      baseNet: "49.0001.0000.0000.0000.00"
       level: 1
     srv6:
       encapBehavior: "H.Encaps.Red"
       locator:
-        basePrefix: "${SRV6_LOCATOR_PREFIX}"
+        basePrefix: "fd00:1234::/48"
         format: "usid-f3216"
     nodeSelector:
       matchExpressions:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
     routeReflector:
-      clusterID: ${CLUSTER_ID}
+      clusterID: 10.255.255.255
     neighbors:
       - type: Internal
-        address: ${TOR_LOOPBACK}
+        address: fc00:0:20::1
       - type: Internal
-        listenRange: ${EVPN_LISTEN_RANGE}
+        listenRange: fd00::/16
         addressFamilies:
           - type: ipv4unicast
             properties:
@@ -59,41 +43,41 @@ underlays:
             properties:
               - type: routeReflectorClient
       - type: Internal
-        address: ${RR_LOOPBACK_0}
+        address: fd00::2
         addressFamilies:
           - type: ipv4unicast
           - type: evpn
       - type: Internal
-        address: ${RR_LOOPBACK_1}
+        address: fd00::3
         addressFamilies:
           - type: ipv4unicast
           - type: evpn
       - type: Internal
-        address: ${RR_LOOPBACK_2}
+        address: fd00::4
         addressFamilies:
           - type: ipv4unicast
           - type: evpn
 
 l2vnis:
-  - vni: ${L2_VNI}
+  - vni: 210
     routingDomain:
       type: L3VPN
       l3vpn:
-        name: ${VRF_NAME}
+        name: red
     vxlanport: 4789
     gatewayIPs:
-      - "${L2_GATEWAY_IP}"
-      - "${L2_GATEWAY_IP_V6}"
+      - "192.168.110.1/24"
+      - "fd00:110::1/64"
     hostMaster:
       type: LinuxBridge
       linuxBridge:
         lifecycle: External
         name: br0
 l3vpns:
-  - name: ${VRF_NAME}
-    vrf: ${VRF_NAME}
-    rdAssignedNumber: ${L3_VPN}
+  - name: red
+    vrf: red
+    rdAssignedNumber: 2
     exportRTs:
-    - "${BGP_AS}:${L3_VPN}"
+    - "65500:2"
     importRTs:
-    - "${BGP_AS}:${L3_VPN}"
+    - "65500:2"
