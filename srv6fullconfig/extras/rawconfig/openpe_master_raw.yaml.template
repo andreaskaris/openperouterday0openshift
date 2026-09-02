@@ -8,11 +8,11 @@
 # envsubst variables (rawfrrconfigs only):
 #   ${LOOPBACK_V6}
 #   ${RR_LOOPBACK_0}, ${RR_LOOPBACK_1}, ${RR_LOOPBACK_2}
-
-rawfrrconfigs:
-  - priority: 100
-    rawConfig: |
-      router bgp 65500
-       neighbor ${RR_LOOPBACK_0} update-source ${LOOPBACK_V6}
-       neighbor ${RR_LOOPBACK_1} update-source ${LOOPBACK_V6}
-       neighbor ${RR_LOOPBACK_2} update-source ${LOOPBACK_V6}
+#
+# rawfrrconfigs:
+#   - priority: 100
+#     rawConfig: |
+#       router bgp 65500
+#        neighbor ${RR_LOOPBACK_0} update-source ${LOOPBACK_V6}
+#        neighbor ${RR_LOOPBACK_1} update-source ${LOOPBACK_V6}
+#        neighbor ${RR_LOOPBACK_2} update-source ${LOOPBACK_V6}

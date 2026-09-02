@@ -37,7 +37,7 @@ underlays:
           - type: ipv4vpn
           - type: ipv6vpn
       - type: Internal
-        listenRange: fd00::/16
+        listenRange: fd2e:6f44:5dd8:c956::/120
         addressFamilies:
           - type: ipv4unicast
             properties:
@@ -46,17 +46,17 @@ underlays:
             properties:
               - type: routeReflectorClient
       - type: Internal
-        address: fd00::2
+        address: fd2e:6f44:5dd8:c956::50
         addressFamilies:
           - type: ipv4unicast
           - type: evpn
       - type: Internal
-        address: fd00::3
+        address: fd2e:6f44:5dd8:c956::51
         addressFamilies:
           - type: ipv4unicast
           - type: evpn
       - type: Internal
-        address: fd00::4
+        address: fd2e:6f44:5dd8:c956::52
         addressFamilies:
           - type: ipv4unicast
           - type: evpn

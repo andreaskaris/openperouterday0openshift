@@ -59,7 +59,8 @@ fi
 source "$VARS_FILE"
 
 log "Loaded variables from $VARS_FILE"
-log "  LAST_OCTET=$LAST_OCTET, LOOPBACK_V6=$LOOPBACK_V6"
+log "  LAST_OCTET=$LAST_OCTET"
+# log "  LOOPBACK_V6=$LOOPBACK_V6"
 
 #
 # STEP 2: Determine role and select template
@@ -67,9 +68,9 @@ log "  LAST_OCTET=$LAST_OCTET, LOOPBACK_V6=$LOOPBACK_V6"
 log_step "Determining node role"
 
 # In a redundant design, all nodes (including the masters) are route reflector clients to the 3 masters.
-export RR_LOOPBACK_0="fd00::${RR_NODE_IDX_0}"
-export RR_LOOPBACK_1="fd00::${RR_NODE_IDX_1}"
-export RR_LOOPBACK_2="fd00::${RR_NODE_IDX_2}"
+# export RR_LOOPBACK_0="fd00::${RR_NODE_IDX_0}"
+# export RR_LOOPBACK_1="fd00::${RR_NODE_IDX_1}"
+# export RR_LOOPBACK_2="fd00::${RR_NODE_IDX_2}"
 
 # In a redundant design, the 3 masters all function as route reflectors.
 NODE_TYPE="worker"
@@ -78,7 +79,8 @@ if [[ "$LAST_OCTET" == "$RR_NODE_IDX_0" ]] ||
    [[ "$LAST_OCTET" == "$RR_NODE_IDX_2" ]]; then
     NODE_TYPE="master"
 fi
-log "This node is a ${NODE_TYPE} (idx=${LAST_OCTET}, RR0=${RR_LOOPBACK_0}, RR1=${RR_LOOPBACK_1}, RR2=${RR_LOOPBACK_2})"
+log "This node is a ${NODE_TYPE} (idx=${LAST_OCTET})"
+# log "RR0=${RR_LOOPBACK_0}, RR1=${RR_LOOPBACK_1}, RR2=${RR_LOOPBACK_2})"
 
 #
 # STEP 3: Copy yaml files
@@ -108,7 +110,7 @@ CONFIG_OUTPUT="${CONFIG_OUTPUT_DIR}/${RENDERED_TEMPLATE_OUTPUT}"
 mkdir -p "${CONFIG_OUTPUT_DIR}"
 
 # Export variables for envsubst (rawfrrconfigs only)
-export LOOPBACK_V6
+# export LOOPBACK_V6
 
 envsubst < "$CONFIG_TEMPLATE" > "$CONFIG_OUTPUT" || {
     error "Failed to render configuration template"
