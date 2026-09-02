@@ -36,7 +36,6 @@ sequence at boot to configure each node:
 |--------|-------------|
 | `setup-underlay.sh` | Waits for FRR and br0, derives the node index (last octet) and loopback IPv6 from the br0 IP |
 | `generate-config.sh` | Picks the master or worker config based on node index, renders rawfrrconfigs template with `envsubst` |
-| `bridge-refresher.sh` | Continuously pings VIPs on the EVPN bridge so ARP entries stay alive and EVPN type-2 routes are advertised |
 | `openperouter-common.sh` | Shared helpers (logging, namespace utilities) sourced by all scripts |
 
 ## FRR Configuration
@@ -60,9 +59,6 @@ All tunable parameters live in [`extras/rawconfig/vpn-setup.env`](extras/rawconf
 |----------|---------|-------------|
 | `FRR_READY_TIMEOUT` | `60` | Seconds to wait for the FRR container to start |
 | `BR0_READY_TIMEOUT` | `120` | Seconds to wait for br0/br-ex to get an IP |
-| `L2_VNI` | `210` | VXLAN VNI for the L2 EVPN overlay (bridge-refresher) |
-| `L2_GATEWAY_IP` | `192.168.110.1/24` | Anycast gateway IPv4 on the EVPN bridge (bridge-refresher) |
-| `L2_GATEWAY_IP_V6` | `fd00:110::1/64` | Anycast gateway IPv6 on the EVPN bridge (bridge-refresher) |
 
 ## Building
 
