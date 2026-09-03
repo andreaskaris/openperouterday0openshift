@@ -31,12 +31,24 @@ underlays:
     neighbors:
       - type: Internal
         address: fc00:0:20::1
+        addressFamilies:
+          - type: ipv4vpn
+          - type: ipv6vpn
       - type: Internal
         address: fd00::2
+        addressFamilies:
+          - type: ipv4unicast
+          - type: evpn
       - type: Internal
         address: fd00::3
+        addressFamilies:
+          - type: ipv4unicast
+          - type: evpn
       - type: Internal
         address: fd00::4
+        addressFamilies:
+          - type: ipv4unicast
+          - type: evpn
 l2vnis:
   - vni: 210
     routingDomain:

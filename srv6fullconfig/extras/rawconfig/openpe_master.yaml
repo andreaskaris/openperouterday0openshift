@@ -33,6 +33,9 @@ underlays:
     neighbors:
       - type: Internal
         address: fc00:0:20::1
+        addressFamilies:
+          - type: ipv4vpn
+          - type: ipv6vpn
       - type: Internal
         listenRange: fd00::/16
         addressFamilies:
