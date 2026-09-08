@@ -22,7 +22,7 @@ underlays:
     srv6:
       encapBehavior: "H.Encaps.Red"
       locator:
-        basePrefix: "fd00:1234::/48"
+        basePrefix: "fd00:2::/48"
         format: "usid-f3216"
     nodeSelector:
       matchExpressions:
