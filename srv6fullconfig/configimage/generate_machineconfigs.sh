@@ -47,6 +47,12 @@ if [[ -f "${SCRIPTDIR}/registry-worker.bu" ]]; then
         -o "${output_dir}/01-worker-registry.yaml"
 fi
 
+# For a network with IPv4 VXLAN tunnel endpoints and SRv6 + encap.red, the VXLAN
+# overhead is 50 bytes which is larger than the 40 bytes for SRv6 encap.red.
+# However, for a network with IPv6 VXLAN tunnel endpoints, the increases to 70
+# bytes for the VXLAN header. Adjust the cluster MTU from the default 1400 for
+# pods (1500 - 100 accounting for Geneve) to 1330 to account for IPv6 VXLAN
+# tunnel overhead.
 echo "  set-cluster-mtu.yaml"
 cat <<'EOF' > "${output_dir}/set-cluster-mtu.yaml"
 apiVersion: operator.openshift.io/v1
@@ -56,7 +62,7 @@ metadata:
 spec:
   defaultNetwork:
     ovnKubernetesConfig:
-      mtu: 1350
+      mtu: 1330
 EOF
 
 echo "==> MachineConfig manifests generated."

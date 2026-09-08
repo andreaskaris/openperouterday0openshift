@@ -9,7 +9,6 @@ underlays:
   - asn: 65500
     tunnelEndpoint:
       cidrs:
-        - 100.65.0.0/24
         - fd00::/64
     interfaces:
     - type: NetworkDevice
@@ -37,17 +36,14 @@ underlays:
       - type: Internal
         address: fd2e:6f44:5dd8:c956::50
         addressFamilies:
-          - type: ipv4unicast
           - type: evpn
       - type: Internal
         address: fd2e:6f44:5dd8:c956::51
         addressFamilies:
-          - type: ipv4unicast
           - type: evpn
       - type: Internal
         address: fd2e:6f44:5dd8:c956::52
         addressFamilies:
-          - type: ipv4unicast
           - type: evpn
 l2vnis:
   - vni: 210
