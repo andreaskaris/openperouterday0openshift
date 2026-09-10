@@ -17,6 +17,7 @@ hosts:
     - name: br0
       type: linux-bridge
       state: up
+      mtu: 1430
       ipv4:
         enabled: true
         auto-dns: false
@@ -113,6 +114,7 @@ hosts:
     - name: br0
       type: linux-bridge
       state: up
+      mtu: 1430
       ipv4:
         enabled: true
         auto-dns: false
@@ -209,6 +211,7 @@ hosts:
     - name: br0
       type: linux-bridge
       state: up
+      mtu: 1430
       ipv4:
         enabled: true
         auto-dns: false
@@ -305,6 +308,7 @@ hosts:
     - name: br0
       type: linux-bridge
       state: up
+      mtu: 1430
       ipv4:
         enabled: true
         auto-dns: false
@@ -401,6 +405,7 @@ hosts:
     - name: br0
       type: linux-bridge
       state: up
+      mtu: 1430
       ipv4:
         enabled: true
         auto-dns: false

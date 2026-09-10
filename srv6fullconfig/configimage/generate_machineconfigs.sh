@@ -47,6 +47,18 @@ if [[ -f "${SCRIPTDIR}/registry-worker.bu" ]]; then
         -o "${output_dir}/01-worker-registry.yaml"
 fi
 
+if [[ -f "${SCRIPTDIR}/if-mtu.bu" ]]; then
+    echo "  if-mtu.bu -> 01-master-if-mtu.yaml"
+    butane --files-dir="${EXTRASDIR}" "${SCRIPTDIR}/if-mtu.bu" \
+        -o "${output_dir}/99-master-if-mtu.yaml"
+fi
+
+if [[ -f "${SCRIPTDIR}/if-mtu-worker.bu" ]]; then
+    echo "  if-mtu-worker.bu -> 01-worker-if-mtu.yaml"
+    butane --files-dir="${EXTRASDIR}" "${SCRIPTDIR}/if-mtu-worker.bu" \
+        -o "${output_dir}/99-worker-if-mtu.yaml"
+fi
+
 # For a network with IPv4 VXLAN tunnel endpoints and SRv6 + encap.red, the VXLAN
 # overhead is 50 bytes which is larger than the 40 bytes for SRv6 encap.red.
 # However, for a network with IPv6 VXLAN tunnel endpoints, the increases to 70
