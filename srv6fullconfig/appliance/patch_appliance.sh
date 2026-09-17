@@ -3,9 +3,9 @@
 # OpenPERouter rawconfig quadlets, configs, registry mirrors, DNS overrides,
 # and the ignition hack agent into it.
 #
-# This is the rawconfig variant: it compiles openperouter-raw.bu (the single
-# source of truth for file lists and systemd units) and merges the resulting
-# ignition with appliance-specific extras (registry mirrors, DNS, SSH key).
+# This compiles openperouter-master.bu (the single source of truth for file
+# lists and systemd units) and merges the resulting ignition with
+# appliance-specific extras (registry mirrors, DNS, SSH key).
 #
 # Usage: patch_appliance.sh <appliance_iso> <ocp_dir>
 #
@@ -18,7 +18,7 @@ set -euo pipefail
 
 SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXTRASDIR="$(cd "${SCRIPTDIR}/../extras" && pwd)"
-RAWCONFIG_BU="${SCRIPTDIR}/../configimage/openperouter-raw.bu"
+RAWCONFIG_BU="${SCRIPTDIR}/../configimage/openperouter-master.bu"
 
 appliance_iso="$1"
 ocp_dir="$2"
@@ -29,14 +29,14 @@ if [[ ! -f "${appliance_iso}" ]]; then
 fi
 
 if [[ ! -f "${RAWCONFIG_BU}" ]]; then
-    echo "ERROR: openperouter-raw.bu not found: ${RAWCONFIG_BU}"
+    echo "ERROR: openperouter-master.bu not found: ${RAWCONFIG_BU}"
     exit 1
 fi
 
 # ============================================================
-# Step 1: Compile openperouter-raw.bu → ignition
+# Step 1: Compile openperouter-master.bu → ignition
 # ============================================================
-echo "==> Compiling openperouter-raw.bu..."
+echo "==> Compiling openperouter-master.bu..."
 
 tmpdir=$(mktemp -d)
 trap 'rm -rf "${tmpdir}"' EXIT

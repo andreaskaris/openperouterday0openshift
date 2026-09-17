@@ -1,6 +1,6 @@
 #!/bin/bash
 # generate_machineconfigs.sh - Compile MachineConfig manifests from
-# butane sources (openperouter-raw, dns, registry).
+# butane sources (openperouter-master/worker, dns, registry).
 #
 # Usage: generate_machineconfigs.sh <output_dir>
 #
@@ -23,15 +23,15 @@ fi
 
 echo "==> Generating MachineConfig manifests into ${output_dir}..."
 
-if [[ -f "${SCRIPTDIR}/openperouter-raw.bu" ]]; then
-    echo "  openperouter-raw.bu -> 99-master-openperouter.yaml"
-    butane --files-dir="${EXTRASDIR}" "${SCRIPTDIR}/openperouter-raw.bu" \
+if [[ -f "${SCRIPTDIR}/openperouter-master.bu" ]]; then
+    echo "  openperouter-master.bu -> 99-master-openperouter.yaml"
+    butane --files-dir="${EXTRASDIR}" "${SCRIPTDIR}/openperouter-master.bu" \
         -o "${output_dir}/99-master-openperouter.yaml"
 fi
 
-if [[ -f "${SCRIPTDIR}/openperouter-raw-worker.bu" ]]; then
-    echo "  openperouter-raw-worker.bu -> 99-worker-openperouter.yaml"
-    butane --files-dir="${EXTRASDIR}" "${SCRIPTDIR}/openperouter-raw-worker.bu" \
+if [[ -f "${SCRIPTDIR}/openperouter-worker.bu" ]]; then
+    echo "  openperouter-worker.bu -> 99-worker-openperouter.yaml"
+    butane --files-dir="${EXTRASDIR}" "${SCRIPTDIR}/openperouter-worker.bu" \
         -o "${output_dir}/99-worker-openperouter.yaml"
 fi
 
