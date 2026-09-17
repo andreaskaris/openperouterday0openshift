@@ -254,10 +254,6 @@ underlays:
       locator:
         basePrefix: "fd00:2::/48"
         format: "usid-f3216"
-    nodeSelector:
-      matchExpressions:
-        - key: node-role.kubernetes.io/control-plane
-          operator: Exists
     routeReflector:
       clusterID: 10.255.255.255
     neighbors:
@@ -331,10 +327,6 @@ underlays:
       locator:
         basePrefix: "fd00:2::/48"
         format: "usid-f3216"
-    nodeSelector:
-      matchExpressions:
-        - key: node-role.kubernetes.io/control-plane
-          operator: DoesNotExist
     neighbors:
       - type: Internal
         address: fc00:0:20::1
@@ -390,7 +382,6 @@ While you can find more details in the [API reference](https://openperouter.gith
 - **`routerIDCIDR`**: The node's router-id for BGP will be chosen from this subnet, e.g. for subnet `10.0.0.0/24` a node with node ID 4 will have router-id `10.0.0.4`.
 - **`isis`**: Enables and configures IS-IS. The single NET address is configured via `baseNet`. The actual NET ID is `baseNet` + node ID. E.g., with `baseNet` `49.0001.0000.0000.0000.00` and node ID 4, the resulting NET will be `49.0001.0000.0000.0004.00`. When the `isis` stanza is present, by default, IS-IS will be enabled for address-family IPv6 only on all interfaces under `underlay.interfaces`, and for the `lo` loopback interfaces, with IS-IS passive for the latter. IS-IS currently has a `features` configuration knob to advertise passive interfaces only as well as an `isis.interfaces` list that allows enabling/disabling specific address-families on specific interfaces (useful if the default settings are insufficient).
 - **`srv6`**: Contains Segment Routing over IPv6 related configuration. Currently, only `usid-f3216` is supported. Allows setting the encapsulation behavior (`H.Encaps.Red` or `H.Encaps`). The most important setting here is the `basePrefix`. Based on this prefix, the correct node ID will be chosen inside the locator node segment. A prefix should be chosen so that the first 32 bits, the block segment, are fixed, and the entire mask must be 48 bits, e.g. `fd00:2::/48`. In this example, with a node ID of 2, the FRR setting will be `prefix fd00:2:2::/48 block-len 32 node-len 16`.
-- **`nodeSelector`**: Selects the respective node type (control-plane or worker). This setting is currently without effect in the OpenShift setup. Instead, see [Determining the node type](#determining-the-node-type).
 - **`routeReflector`**: Only used on the master nodes to make these nodes route reflectors and to set the RR cluster ID.
 - **`neighbors`**: Configures the neighbors. For master nodes, we set up an SRv6 overlay with a single neighbor (`fc00:0:20::1`) in this case and we explicitly instruct it here to exchange routes for address-families IPv4 VPN and IPv6 VPN. For EVPN, we configure a `listenRange` of `2600:52:7::/48`. All worker nodes are route reflector clients to the 3 master nodes, and their `eno12399np0` IPv6 address must be inside this subnet. The master nodes also peer between each other for EVPN, and their IP addresses are explicitly defined. Worker nodes have the same setup minus the `listenRange` as they are not route reflectors.
 

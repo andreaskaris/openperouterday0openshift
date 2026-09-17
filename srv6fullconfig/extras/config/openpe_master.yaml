@@ -23,10 +23,6 @@ underlays:
       locator:
         basePrefix: "fd00:2::/48"
         format: "usid-f3216"
-    nodeSelector:
-      matchExpressions:
-        - key: node-role.kubernetes.io/control-plane
-          operator: Exists
     routeReflector:
       clusterID: 10.255.255.255
     neighbors:
