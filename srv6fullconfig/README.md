@@ -42,7 +42,6 @@ sequence at boot to configure each node:
 | Script | What it does |
 |--------|-------------|
 | `generate-config.sh` | Determines node role (master/worker) from hostname, copies the matching YAML configs |
-| `openperouter-common.sh` | Shared helpers (logging, namespace utilities) sourced by all scripts |
 
 ## FRR Configuration
 

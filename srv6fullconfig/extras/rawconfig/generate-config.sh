@@ -13,20 +13,12 @@ set -euo pipefail
 #   0   - Success
 #   1   - General error
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Source common utilities
-if [[ ! -f "$SCRIPT_DIR/openperouter-common.sh" ]]; then
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: openperouter-common.sh not found" >&2
-    exit 1
-fi
-
-source "$SCRIPT_DIR/openperouter-common.sh"
+log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
+log_step() { log "=== Step: $1 ==="; }
 
 TEMPLATE_DIR="/etc/openperouter/templates"
 CONFIG_OUTPUT_DIR="/var/lib/openperouter/configs"
 
-# Start main execution
 log "Starting configuration generation (ISIS + SRv6 mode)"
 
 #
@@ -50,4 +42,4 @@ mkdir -p "${CONFIG_OUTPUT_DIR}"
 log "Copying files $(ls ${TEMPLATE_DIR}/openpe_${NODE_TYPE}*.yaml) to ${CONFIG_OUTPUT_DIR}"
 cp "${TEMPLATE_DIR}"/openpe_"${NODE_TYPE}"*.yaml "${CONFIG_OUTPUT_DIR}"
 
-exit_success "Configuration generation completed successfully"
+log "Configuration generation completed successfully"
