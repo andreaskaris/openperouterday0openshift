@@ -105,7 +105,7 @@ Due to nmstate behavior, it is very important to have br0 as the first IP in the
 
 - br0 has a dummy bridge slave, interface `dummy0`
 - br0 must account for the overhead of VXLAN over IPv6, i.e. 70 bytes. Configure the MTU accordingly.
-- With the current setup, master nodes should have a last IPv4 octet of 2, 3, or 4 on br0 for OpenPERouter to know that these nodes are master nodes. See [Determining the node type](#determining-the-node-type) for more information.
+- The node role (master vs. worker) is determined from the hostname. See [Determining the node type](#determining-the-node-type) for more information.
 - A dummy interface is present with e.g. name `nodeidx` and e.g. subnet `192.0.2.0/24`. Both the interface name and subnet can be chosen arbitrarily. The OpenPERouter is later configured to inspect the single IPv4 subnet on interface `nodeidx` and to choose the node's ID based on the n-th address that it has in that subnet, therefore the IP address inside the subnet must be unique per node.
 - The actual interface for connectivity to the rest of the network is also set up in `agent-config.yaml`. Here, it is `eno12399np0`. This interface will later be moved, alongside all its configured IP addresses, into the `perouter` namespace and will be used to establish underlay connectivity.
 
@@ -255,9 +255,7 @@ spec:
 
 ## Determining the Node Type
 
-The node type is used to establish if we need to push master or worker configuration to the nodes. We currently establish the node type from the node's `LAST_OCTET` on br0's IPv4 address range. If this `LAST_OCTET` is 2, 3, or 4, OpenPERouter assumes that the node is a master node. Otherwise, it is a worker node. See file `extras/rawconfig/generate-config.sh` for more details.
-
-> **NOTE:** The current algorithm is a legacy implementation. A better mechanism would be to use the `nodeidx` interface, or other criteria to establish that this is a master node, such as using the hostname, parsing input from `dmidecode`, etc.
+The node type is used to establish if we need to push master or worker configuration to the nodes. The node type is determined from the hostname: if it starts with `master` or `control-plane`, the node is assigned the master role. Otherwise, it is a worker node. See file `extras/rawconfig/generate-config.sh` for more details.
 
 ## Configuring the OpenPERouter
 

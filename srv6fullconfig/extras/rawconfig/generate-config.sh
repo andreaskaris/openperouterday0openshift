@@ -31,11 +31,6 @@ if [[ -f "$ENV_FILE" ]]; then
     source "$ENV_FILE"
 fi
 
-# Load environment variables with defaults
-RR_NODE_IDX_0="${RR_NODE_IDX_0:-2}"
-RR_NODE_IDX_1="${RR_NODE_IDX_1:-3}"
-RR_NODE_IDX_2="${RR_NODE_IDX_2:-4}"
-
 # Paths
 VARS_FILE="${VARS_FILE:-/var/lib/openperouter/vpn-setup.vars}"
 TEMPLATE_DIR="${TEMPLATE_DIR:-/etc/openperouter/templates}"
@@ -59,28 +54,18 @@ fi
 source "$VARS_FILE"
 
 log "Loaded variables from $VARS_FILE"
-log "  LAST_OCTET=$LAST_OCTET"
-# log "  LOOPBACK_V6=$LOOPBACK_V6"
 
 #
-# STEP 2: Determine role and select template
+# STEP 2: Determine role from hostname
 #
 log_step "Determining node role"
 
-# In a redundant design, all nodes (including the masters) are route reflector clients to the 3 masters.
-# export RR_LOOPBACK_0="fd00::${RR_NODE_IDX_0}"
-# export RR_LOOPBACK_1="fd00::${RR_NODE_IDX_1}"
-# export RR_LOOPBACK_2="fd00::${RR_NODE_IDX_2}"
-
-# In a redundant design, the 3 masters all function as route reflectors.
+HOSTNAME="$(hostname)"
 NODE_TYPE="worker"
-if [[ "$LAST_OCTET" == "$RR_NODE_IDX_0" ]] ||
-   [[ "$LAST_OCTET" == "$RR_NODE_IDX_1" ]] ||
-   [[ "$LAST_OCTET" == "$RR_NODE_IDX_2" ]]; then
+if [[ "$HOSTNAME" == master* ]] || [[ "$HOSTNAME" == control-plane* ]]; then
     NODE_TYPE="master"
 fi
-log "This node is a ${NODE_TYPE} (idx=${LAST_OCTET})"
-# log "RR0=${RR_LOOPBACK_0}, RR1=${RR_LOOPBACK_1}, RR2=${RR_LOOPBACK_2})"
+log "This node is a ${NODE_TYPE} (hostname=${HOSTNAME})"
 
 #
 # STEP 3: Copy yaml files
