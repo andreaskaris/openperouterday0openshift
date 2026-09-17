@@ -5,9 +5,9 @@
 An ISIS + SRv6 fabric running on top of an OpenShift cluster (3 masters + N workers),
 with a TOR router peering externally.
 
-- **Underlay**: ISIS Level-1, single area `49.0001`
+- **Underlay**: ISIS Level-1 (IPv6-only), single area `49.0001`
 - **L3VPN** (north-south): BGP IPv4/IPv6 VPN with SRv6 encapsulation between all nodes and the TOR
-- **L2VPN** (east-west): BGP EVPN with VXLAN (VNI 210) between all cluster nodes, reflected by master-0
+- **L2VPN** (east-west): BGP EVPN with VXLAN (VNI 210) between all cluster nodes, reflected by all 3 masters
 - **AS**: 65500 (all iBGP)
 
 ```
@@ -21,136 +21,187 @@ with a TOR router peering externally.
                        │     lo-extra: 10.100.0.1/32   │
                        │       (DNS + NTP server)      │
                        └──────────┬───────────────────┘
-                                  │ ISIS L1
+                                  │ ISIS L1 (IPv6-only)
+                                  │ enp2s0 (192.168.111.0/24
+                                  │         fd2e:6f44:5dd8:c956::/120)
                  ┌────────────────┼────────────────┐
                  │                │                │
-     ┌───────────┴──┐   ┌────────┴─────┐   ┌─────┴────────┐
-     │  master-0    │   │  master-1    │   │  master-2    │
-     │  EVPN RR     │   │  EVPN Client │   │  EVPN Client │
-     │  10.0.0.2    │   │  10.0.0.3    │   │  10.0.0.4    │
-     │  fc00:0:2::1 │   │  fc00:0:3::1 │   │  fc00:0:4::1 │
-     │  fd00:2::/48 │   │  fd00:3::/48 │   │  fd00:4::/48 │
-     │              │   │              │   │              │
-     │  br0: .110.2 │   │  br0: .110.3 │   │  br0: .110.4 │
-     │  VRF red:    │   │  VRF red:    │   │  VRF red:    │
-     │   br-pe-210  │   │   br-pe-210  │   │   br-pe-210  │
-     │   .110.1/24  │   │   .110.1/24  │   │   .110.1/24  │
-     │   VNI 210    │   │   VNI 210    │   │   VNI 210    │
-     └──────────────┘   └──────────────┘   └──────────────┘
+     ┌────────────────┐   ┌────────────────┐   ┌────────────────┐
+     │  master-0      │   │  master-1      │   │  master-2      │
+     │  EVPN RR       │   │  EVPN RR       │   │  EVPN RR       │
+     │  lo:  fd00::2  │   │  lo:  fd00::3  │   │  lo:  fd00::4  │
+     │  SRv6:         │   │  SRv6:         │   │  SRv6:         │
+     │   fd00:2:2::/48│   │   fd00:2:3::/48│   │   fd00:2:4::/48│
+     │  .111.80       │   │  .111.81       │   │  .111.82       │
+     │  ::50          │   │  ::51          │   │  ::52          │
+     │                │   │                │   │                │
+     │  br0: .110.2   │   │  br0: .110.3   │   │  br0: .110.4   │
+     │  VRF red:      │   │  VRF red:      │   │  VRF red:      │
+     │   br-pe-210    │   │   br-pe-210    │   │   br-pe-210    │
+     │   .110.1/24    │   │   .110.1/24    │   │   .110.1/24    │
+     │   VNI 210      │   │   VNI 210      │   │   VNI 210      │
+     └────────────────┘   └────────────────┘   └────────────────┘
            ▲                   ▲                   ▲
-           └───── EVPN RR ─────┴───── EVPN RR ─────┘
-                (l2vpn evpn reflected by master-0)
+           └─── EVPN RR mesh ──┴─── EVPN RR mesh ──┘
 
-     ┌──────────────┐   ┌──────────────┐
-     │  worker-0    │   │  worker-1    │   ...
-     │  EVPN Client │   │  EVPN Client │
-     │  10.0.0.5    │   │  10.0.0.6    │
-     │  fc00:0:5::1 │   │  fc00:0:6::1 │
-     │  fd00:5::/48 │   │  fd00:6::/48 │
-     │              │   │              │
-     │  br0: .110.5 │   │  br0: .110.6 │
-     │  VRF red:    │   │  VRF red:    │
-     │   br-pe-210  │   │   br-pe-210  │
-     │   .110.1/24  │   │   .110.1/24  │
-     │   VNI 210    │   │   VNI 210    │
-     └──────────────┘   └──────────────┘
+     ┌────────────────┐   ┌────────────────┐
+     │  worker-0      │   │  worker-1      │   ...
+     │  EVPN Client   │   │  EVPN Client   │
+     │  lo:  fd00::5  │   │  lo:  fd00::6  │
+     │  SRv6:         │   │  SRv6:         │
+     │   fd00:2:5::/48│   │   fd00:2:6::/48│
+     │  .111.83       │   │  .111.84       │
+     │  ::53          │   │  ::54          │
+     │                │   │                │
+     │  br0: .110.5   │   │  br0: .110.6   │
+     │  VRF red:      │   │  VRF red:      │
+     │   br-pe-210    │   │   br-pe-210    │
+     │   .110.1/24    │   │   .110.1/24    │
+     │   VNI 210      │   │   VNI 210      │
+     └────────────────┘   └────────────────┘
            ▲                   ▲
-           └───── EVPN RR ─────┘
-          (peers with master-0)
+           └── EVPN clients ───┘
+          (peer with all 3 masters)
 ```
 
 ## Addressing Scheme
 
-All addresses are derived from the node's last octet of `br0` IPv4 (`LAST_OCTET`).
+Due to legacy reasons, we currently use interface br0 to determine the node type.
+The node type (master vs worker) is determined from the last octet of `br0` IPv4 —
+if it matches 2, 3, or 4, the node is a master (EVPN RR); otherwise it is a worker
+(EVPN client).
 
-| Node | Router ID | Loopback IPv6 | SRv6 Source | SRv6 Prefix | Underlay IPv6 | Bridge IPv4 | Bridge IPv6 |
-|---|---|---|---|---|---|---|---|
-| TOR | 10.0.0.20 | fc00:0:20::1 | fd00:20::1 | fd00:20::/48 | fc00:100::20 | — | — |
-| master-0 (RR) | 10.0.0.2 | fc00:0:2::1 | fd00:2::1 | fd00:2::/48 | fc00:100::2 | 192.168.110.2 | fd00:110::2 |
-| master-1 (client) | 10.0.0.3 | fc00:0:3::1 | fd00:3::1 | fd00:3::/48 | fc00:100::3 | 192.168.110.3 | fd00:110::3 |
-| master-2 (client) | 10.0.0.4 | fc00:0:4::1 | fd00:4::1 | fd00:4::/48 | fc00:100::4 | 192.168.110.4 | fd00:110::4 |
-| worker-0 (client) | 10.0.0.5 | fc00:0:5::1 | fd00:5::1 | fd00:5::/48 | fc00:100::5 | 192.168.110.5 | fd00:110::5 |
-| worker-1 (client) | 10.0.0.6 | fc00:0:6::1 | fd00:6::1 | fd00:6::/48 | fc00:100::6 | 192.168.110.6 | fd00:110::6 |
+Bridge, loopback, router ID, and SRv6 locator addresses are derived from the node
+index — the host position within the `192.0.2.0/24` subnet on the `nodeidx` dummy
+interface (e.g. `192.0.2.2` → index 2). For these, the node address is simply the
+subnet base + node index.
 
-Workers follow the same addressing formula as masters, continuing from LAST_OCTET 5 onward.
+The `enp2s0` addresses (ISIS underlay interface) are assigned statically in the
+agent-config and do not follow the node index scheme.
+
+| Node | Index | enp2s0 IPv4 | enp2s0 IPv6 | Bridge IPv4 | Bridge IPv6 |
+|---|---|---|---|---|---|
+| master-0 (RR) | 2 | 192.168.111.80 | fd2e:6f44:5dd8:c956::50 | 192.168.110.2 | fd00:110::2 |
+| master-1 (RR) | 3 | 192.168.111.81 | fd2e:6f44:5dd8:c956::51 | 192.168.110.3 | fd00:110::3 |
+| master-2 (RR) | 4 | 192.168.111.82 | fd2e:6f44:5dd8:c956::52 | 192.168.110.4 | fd00:110::4 |
+| worker-0 | 5 | 192.168.111.83 | fd2e:6f44:5dd8:c956::53 | 192.168.110.5 | fd00:110::5 |
+| worker-1 | 6 | 192.168.111.84 | fd2e:6f44:5dd8:c956::54 | 192.168.110.6 | fd00:110::6 |
+
+The TOR has the following addressing scheme.
+
+| Node | enp2s0 IPv4 | enp2s0 IPv6 |
+|---|---|---|
+| TOR (sno-labbm) | 192.168.111.1 | fd2e:6f44:5dd8:c956::1 |
 
 ### Address derivation formula
 
-Given `LAST_OCTET` (e.g. `2`, `3`, `4`, `5`, `6`, `20`):
+Given node index `N` (e.g. `2`, `3`, `4`, `5`, `6`):
 
 | Address | Formula |
 |---|---|
-| Router ID / VTEP IP | `10.0.0.{LAST_OCTET}` |
-| Loopback IPv6 | `fc00:0:{LAST_OCTET}::1` |
-| SRv6 source | `fd00:{LAST_OCTET}::1` |
-| SRv6 prefix | `fd00:{LAST_OCTET}::/48` |
-| Underlay IPv6 | `fc00:100::{LAST_OCTET}` |
-| ISIS NET | `49.0001.0000.0000.{LAST_OCTET:04d}.00` |
+| Bridge IPv4 | `192.168.110.{N}` |
+| Bridge IPv6 | `fd00:110::{N}` |
+| Loopback IPv6 | `fd00::{N}` |
+| SRv6 Locator | `fd00:2:{N}::/48` |
+| ISIS NET | `49.0001.0000.0000.{N}.00` |
+
+### Controller-derived addressing (from underlay resource)
+
+The OpenPERouter controller derives per-node router ID, loopback, and SRv6 locator from these ranges:
+
+| Parameter | Range | Description |
+|---|---|---|
+| `routerIDCIDR` | `10.0.0.0/24` | Per-node router ID |
+| `tunnelEndpoint.cidrs` | `fd00::/64` | Per-node loopback IPv6 (VTEP source) |
+| `srv6.locator.basePrefix` | `fd00:2::/48` | SRv6 locator base (uSID f3216) |
+
+Concrete per-node values:
+
+| Node | Router ID | Tunnel Endpoint | SRv6 Locator |
+|---|---|---|---|
+| master-0 | 10.0.0.2 | fd00::2 | fd00:2:2::/48 |
+| master-1 | 10.0.0.3 | fd00::3 | fd00:2:3::/48 |
+| master-2 | 10.0.0.4 | fd00::4 | fd00:2:4::/48 |
+| worker-0 | 10.0.0.5 | fd00::5 | fd00:2:5::/48 |
+| worker-1 | 10.0.0.6 | fd00::6 | fd00:2:6::/48 |
+
+### TOR addressing (external, manually configured)
+
+| Parameter | Value |
+|---|---|
+| Router ID | 10.0.0.20 |
+| Loopback IPv6 | fc00:0:20::1 |
+| SRv6 prefix | fd00:20::/48 |
+| uN (node SID) | fd00:20:: |
+| uDT46 (VRF decap) | fd00:20:0:1:: |
 
 ## BGP Peering (AS 65500, all iBGP)
 
 ### L3VPN sessions (ipv4 vpn + ipv6 vpn)
 
-The TOR peers with all cluster nodes (masters and workers) for north-south L3VPN over SRv6.
+Cluster nodes peer with the TOR at `fc00:0:20::1` for north-south L3VPN over SRv6,
+using `update-source fd00::{N}` (tunnel endpoint) and `capability extended-nexthop`.
+The TOR peers back to each node at `fd00::{N}`.
 
-| From | To | Peer Group | AFIs |
-|---|---|---|---|
-| TOR | master-0 (fc00:0:2::1) | PE-NODES | ipv4 vpn, ipv6 vpn |
-| TOR | master-1 (fc00:0:3::1) | PE-NODES | ipv4 vpn, ipv6 vpn |
-| TOR | master-2 (fc00:0:4::1) | PE-NODES | ipv4 vpn, ipv6 vpn |
-| TOR | worker-0 (fc00:0:5::1) | PE-NODES | ipv4 vpn, ipv6 vpn |
-| TOR | worker-1 (fc00:0:6::1) | PE-NODES | ipv4 vpn, ipv6 vpn |
+| From | To | AFIs |
+|---|---|---|
+| each node | TOR (fc00:0:20::1) | ipv4 vpn, ipv6 vpn |
+| TOR | fd00::{N} per node | ipv4 vpn, ipv6 vpn |
 
 ### EVPN sessions (l2vpn evpn)
 
-master-0 is the EVPN route reflector. All other nodes (masters and workers) peer only with master-0.
-The TOR does not participate in EVPN — north-south traffic uses L3VPN only.
+All 3 masters are EVPN route reflectors. EVPN peers over the directly connected
+`enp2s0` IPv6 addresses (`fd2e:6f44:5dd8:c956::/120`), not over loopback.
+The TOR does not participate in EVPN.
 
-| From | To | Peer Group | Role |
-|---|---|---|---|
-| master-0 (RR) | master-1 (fc00:0:3::1) | EVPN-CLIENTS | route-reflector-client |
-| master-0 (RR) | master-2 (fc00:0:4::1) | EVPN-CLIENTS | route-reflector-client |
-| master-0 (RR) | worker-0 (fc00:0:5::1) | EVPN-CLIENTS | route-reflector-client |
-| master-0 (RR) | worker-1 (fc00:0:6::1) | EVPN-CLIENTS | route-reflector-client |
-| master-1 | master-0 (fc00:0:2::1) | EVPN-RR | client |
-| master-2 | master-0 (fc00:0:2::1) | EVPN-RR | client |
-| worker-0 | master-0 (fc00:0:2::1) | EVPN-RR | client |
-| worker-1 | master-0 (fc00:0:2::1) | EVPN-RR | client |
+**Masters** (each master runs this config):
+- `listenRange: fd2e:6f44:5dd8:c956::/120` — accepts RR clients (workers) with `routeReflectorClient`
+- Explicit peers with `::50`, `::51`, `::52` — RR-to-RR mesh (plain iBGP, no route-reflector-client)
 
-## SRv6 SIDs
+**Workers** (each worker runs this config):
+- Explicit peers with `::50`, `::51`, `::52` — all 3 masters
 
-Locator block: `/48`, node: `16 bits`, function: `16 bits` (uSID).
-
-| Node | uN (node SID) | uDT46 (VRF decap) |
+| From | To | Role |
 |---|---|---|
-| TOR | fd00:20:: | fd00:20:0:1:: |
-| master-0 | fd00:2:: | fd00:2:0:1:: |
-| master-1 | fd00:3:: | fd00:3:0:1:: |
-| master-2 | fd00:4:: | fd00:4:0:1:: |
-| worker-0 | fd00:5:: | fd00:5:0:1:: |
-| worker-1 | fd00:6:: | fd00:6:0:1:: |
+| master (RR) | listenRange fd2e:6f44:5dd8:c956::/120 | route-reflector-client |
+| master (RR) | master-0 (::50) | RR-to-RR iBGP |
+| master (RR) | master-1 (::51) | RR-to-RR iBGP |
+| master (RR) | master-2 (::52) | RR-to-RR iBGP |
+| worker | master-0 (::50) | client (via listenRange) |
+| worker | master-1 (::51) | client (via listenRange) |
+| worker | master-2 (::52) | client (via listenRange) |
+
+## SRv6
+
+Locator format: uSID f3216 (block `32 bits`, node `16 bits`, function `16 bits`).
+Encapsulation behavior: `H.Encaps.Red`.
+
+Per-node SRv6 SIDs are derived by the controller from `basePrefix: fd00:2::/48`.
+
+**TOR SIDs** (manually configured):
+
+| SID | Value |
+|---|---|
+| uN (node SID) | fd00:20:: |
+| uDT46 (VRF decap) | fd00:20:0:1:: |
 
 ## L3VPN Routes (VRF red)
 
 ### What each cluster node sees
 
-| Prefix | Next Hop | SRv6 SID | Source |
-|---|---|---|---|
-| 10.10.20.1/32 | 10.0.0.20 | fd00:20:0:1:: | TOR VRF loopback (lored) |
-| 10.100.0.1/32 | 10.0.0.20 | fd00:20:0:1:: | TOR DNS/NTP loopback (lo-extra) |
-| 192.168.110.0/24 | connected | — | Local br-pe-210 (L2 gateway) |
+| Prefix | Source | Via |
+|---|---|---|
+| 10.10.20.1/32 | TOR VRF loopback (lored) | SRv6 (fd00:20:0:1::) |
+| 10.100.0.1/32 | TOR DNS/NTP loopback (lo-extra) | SRv6 (fd00:20:0:1::) |
+| 192.168.110.0/24 | Local br-pe-210 (L2 gateway) | Connected |
 
 ### What the TOR sees
 
-| Prefix | Next Hop | SRv6 SID | Source |
-|---|---|---|---|
-| 192.168.110.2/32 | 10.0.0.2 | fd00:2:0:1:: | master-0 bridge IP |
-| 192.168.110.3/32 | 10.0.0.3 | fd00:3:0:1:: | master-1 bridge IP |
-| 192.168.110.4/32 | 10.0.0.4 | fd00:4:0:1:: | master-2 bridge IP |
-| 192.168.110.5/32 | 10.0.0.5 | fd00:5:0:1:: | worker-0 bridge IP |
-| 192.168.110.6/32 | 10.0.0.6 | fd00:6:0:1:: | worker-1 bridge IP |
-| 10.10.20.1/32 | connected | — | Local lored |
-| 10.100.0.1/32 | connected | — | Local lo-extra |
+| Prefix | Source | Via |
+|---|---|---|
+| 192.168.110.{2-6}/32 | Cluster node bridge IPs | SRv6 (per-node uDT46) |
+| 10.10.20.1/32 | Local lored | Connected |
+| 10.100.0.1/32 | Local lo-extra | Connected |
 
 ## L2VPN / EVPN (VNI 210)
 
@@ -160,8 +211,8 @@ All cluster nodes (masters and workers) share an L2 segment via VXLAN bridge `br
 - RT: 65500:210
 
 EVPN type-2 (MAC/IP) and type-3 (BUM/VTEP) routes are exchanged between
-all cluster nodes via master-0 as route reflector. The TOR does **not** participate
-in EVPN L2 — north-south traffic only via L3VPN.
+all cluster nodes via all 3 masters as route reflectors. The TOR does **not**
+participate in EVPN L2 — north-south traffic only via L3VPN.
 
 ## Services on TOR (VRF red)
 
@@ -181,5 +232,8 @@ Stratum 3 orphan server. All cluster nodes sync to it via the SRv6 L3VPN path.
 
 - Area: `49.0001`
 - Level: L1 only
+- IPv6-only: only `ipv6 router isis` on interfaces (no IPv4 ISIS)
 - Interface: `enp2s0` on cluster nodes, dedicated interface on TOR
+- IPv4 subnet: `192.168.111.0/24`
+- IPv6 subnet: `fd2e:6f44:5dd8:c956::/120`
 - All nodes form L1 adjacencies on the shared broadcast segment
