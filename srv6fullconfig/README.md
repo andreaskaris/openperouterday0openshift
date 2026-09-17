@@ -223,15 +223,9 @@ match-device=interface-name:br0
 ethernet.mtu=1430
 ```
 
-**3. Cluster network MTU** — OVN-Kubernetes by default accounts for 100 bytes overhead for Geneve. However, because we now have double encapsulation (Geneve overlay inside IPv6/VXLAN overlay), we must account for 170 bytes of overhead and configure the `network.operator` with the new MTU setting. Modify file `configimage/generate_machineconfigs.sh`:
+**3. Cluster network MTU** — OVN-Kubernetes by default accounts for 100 bytes overhead for Geneve. However, because we now have double encapsulation (Geneve overlay inside IPv6/VXLAN overlay), we must account for 170 bytes of overhead and configure the `network.operator` with the new MTU setting. Modify file `extras/config/set-cluster-mtu.yaml`:
 
 ```yaml
-# For a network with IPv4 VXLAN tunnel endpoints and SRv6 + encap.red, the VXLAN
-# overhead is 50 bytes which is larger than the 40 bytes for SRv6 encap.red.
-# However, for a network with IPv6 VXLAN tunnel endpoints, the overhead increases
-# to 70 bytes for the VXLAN header. Adjust the cluster MTU from the default 1400
-# for pods (1500 - 100 accounting for Geneve) to 1330 to account for IPv6 VXLAN
-# tunnel overhead.
 apiVersion: operator.openshift.io/v1
 kind: Network
 metadata:
