@@ -41,28 +41,18 @@ sequence at boot to configure each node:
 
 | Script | What it does |
 |--------|-------------|
-| `setup-underlay.sh` | Waits for FRR and br0/br-ex, derives the node index (last octet) from the bridge IP |
-| `generate-config.sh` | Determines node role (master/worker) from node index, copies the matching YAML configs |
+| `generate-config.sh` | Determines node role (master/worker) from hostname, copies the matching YAML configs |
 | `openperouter-common.sh` | Shared helpers (logging, namespace utilities) sourced by all scripts |
 
 ## FRR Configuration
 
-FRR config files live in `extras/rawconfig/`:
+FRR config files live in `extras/config/`:
 
 - **`openpe_master.yaml`** - OpenPERouter configuration for the masters
 - **`openpe_worker.yaml`** - OpenPERouter configuration for the workers
 
-`generate-config.sh` selects master or worker configs by comparing the node's
-last octet against `RR_NODE_IDX_0/1/2` and copies the matching YAML files.
-
-## Configuration (vpn-setup.env)
-
-All tunable parameters live in [`extras/rawconfig/vpn-setup.env`](extras/rawconfig/vpn-setup.env):
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `FRR_READY_TIMEOUT` | `60` | Seconds to wait for the FRR container to start |
-| `BR0_READY_TIMEOUT` | `120` | Seconds to wait for br0/br-ex to get an IP |
+`generate-config.sh` selects master or worker configs based on the hostname
+and copies the matching YAML files.
 
 ## Building
 
@@ -259,11 +249,11 @@ The node type is used to establish if we need to push master or worker configura
 
 ## Configuring the OpenPERouter
 
-In order to configure the OpenPERouter, you need to modify files `extras/rawconfig/openpe_master.yaml` and `extras/rawconfig/openpe_worker.yaml`.
+In order to configure the OpenPERouter, you need to modify files `extras/config/openpe_master.yaml` and `extras/config/openpe_worker.yaml`.
 
 This configuration is static, meaning that these two files are not templates but exact configuration files which will be copied as they are to the nodes (depending on the node type).
 
-### Master Configuration (`extras/rawconfig/openpe_master.yaml`)
+### Master Configuration (`extras/config/openpe_master.yaml`)
 
 ```yaml
 underlays:
@@ -340,7 +330,7 @@ l3vpns:
     - "65500:2"
 ```
 
-### Worker Configuration (`extras/rawconfig/openpe_worker.yaml`)
+### Worker Configuration (`extras/config/openpe_worker.yaml`)
 
 ```yaml
 underlays:
@@ -443,4 +433,4 @@ For North/South traffic from/to OpenShift and the OpenShift external overlay net
 - **`rdAssignedNumber`**: The route distinguisher part, joined to the BGP ASN to form the full Route Distinguisher: `ASN:rdAssignedNumber`.
 - **`exportRTs`/`importRTs`**: The exact export and import Route Targets.
 
-> **NOTE:** Should additional raw configuration be needed, have a look at files `extras/rawconfig/openpe_master_raw.yaml.template` and `extras/rawconfig/openpe_worker_raw.yaml.template` as well as the variables `RR_LOOPBACK_0`, etc. These example files and the associated variables are currently commented, but can serve as an example should raw configurations and templating mechanisms be needed in case of shortcomings in the current OpenPERouter feature set.
+> **NOTE:** Should additional raw configuration be needed, consult the [API reference](https://openperouter.github.io/docs/api-reference/) for available options.
