@@ -11,7 +11,7 @@ storage:
       mode: 0755
       overwrite: true
       contents:
-        local: rawconfig/generate-config.sh
+        local: common/generate-config.sh
     - path: /usr/local/bin/can_start.sh
       mode: 0755
       overwrite: true

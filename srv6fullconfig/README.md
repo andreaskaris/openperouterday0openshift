@@ -36,8 +36,8 @@ See [TOPOLOGY.md](TOPOLOGY.md) for full addressing and peering details.
 
 ## Host Configuration
 
-The systemd services in [`extras/rawconfig/`](extras/rawconfig/) run in
-sequence at boot to configure each node:
+The systemd services in [`extras/common/`](extras/common/) run at boot
+to configure each node:
 
 | Script | What it does |
 |--------|-------------|
@@ -215,7 +215,7 @@ The MTU must be configured in various locations. The following examples are for 
   mtu: 1430
 ```
 
-**2. MachineConfigurations** — after the nodes' OS is installed, they reboot, contact the bootstrap API server and reconfigure their networking. Therefore, we must add MachineConfigurations to configure the correct MTU (`<max MTU> - 70` bytes) from this stage on and beyond. File `configimage/generate_machineconfigs.sh` generates MachineConfigurations via butane from `configimage/if-mtu.bu` (masters) and `configimage/if-mtu-worker.bu` (workers). The MachineConfigurations will create file `/etc/NetworkManager/conf.d/99-br0-mtu.conf` on each node with the following content. This content can be found and modified in the source file `extras/rawconfig/br0-mtu.conf`:
+**2. MachineConfigurations** — after the nodes' OS is installed, they reboot, contact the bootstrap API server and reconfigure their networking. Therefore, we must add MachineConfigurations to configure the correct MTU (`<max MTU> - 70` bytes) from this stage on and beyond. File `configimage/generate_machineconfigs.sh` generates MachineConfigurations via butane from `configimage/if-mtu.bu` (masters) and `configimage/if-mtu-worker.bu` (workers). The MachineConfigurations will create file `/etc/NetworkManager/conf.d/99-br0-mtu.conf` on each node with the following content. This content can be found and modified in the source file `extras/config/br0-mtu.conf`:
 
 ```ini
 [connection-br0-mtu]
@@ -244,7 +244,7 @@ spec:
 
 ## Determining the Node Type
 
-The node type is used to establish if we need to push master or worker configuration to the nodes. The node type is determined from the hostname: if it starts with `master` or `control-plane`, the node is assigned the master role. Otherwise, it is a worker node. See file `extras/rawconfig/generate-config.sh` for more details.
+The node type is used to establish if we need to push master or worker configuration to the nodes. The node type is determined from the hostname: if it starts with `master` or `control-plane`, the node is assigned the master role. Otherwise, it is a worker node. See file `extras/common/generate-config.sh` for more details.
 
 ## Configuring the OpenPERouter
 
