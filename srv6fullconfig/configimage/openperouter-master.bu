@@ -45,12 +45,12 @@ storage:
       overwrite: true
       contents:
         local: quadlets/daemons
-    # --- Node index script ---
-    - path: /usr/local/bin/openperouter-node-index.sh
-      mode: 0755
+    # --- Node index configuration ---
+    - path: /var/lib/openperouter/node-config.yaml
+      mode: 0644
       overwrite: true
       contents:
-        local: common/openperouter-node-index.sh
+        local: config/node-config.yaml
     # --- Shared installer patching script ---
     - path: /usr/local/bin/patch-installer-config.sh
       mode: 0755
@@ -126,23 +126,6 @@ systemd:
         SyslogIdentifier=generate-config
         TimeoutStartSec=60
         TimeoutStopSec=10
-
-        [Install]
-        WantedBy=multi-user.target
-    # --- Node index service ---
-    - name: openperouter-node-index.service
-      enabled: true
-      contents: |
-        [Unit]
-        Description=Set OpenPERouter nodeIndex from bridge IP
-        After=network-online.target
-        Before=controllerpod.service routerpod.service
-        Wants=network-online.target
-
-        [Service]
-        Type=oneshot
-        ExecStart=/usr/local/bin/openperouter-node-index.sh
-        RemainAfterExit=yes
 
         [Install]
         WantedBy=multi-user.target

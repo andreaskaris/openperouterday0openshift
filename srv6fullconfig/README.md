@@ -179,28 +179,15 @@ This configuration is applied via the `agent-config.yaml`, and the br0 address o
 
 ## Selecting the Node Index Interface and Choosing the Log Level
 
-The node index is chosen from the node index interface. If the node has the n-th IP address inside the subnet, its node index will be n. E.g., if the subnet is `192.0.2.0/24`, and the node's IP is `192.0.2.5`, then the node's index is 5. Each node must have a unique IP address on the node index. The node index interface can be chosen by modifying file `extras/common/openperouter-node-index.sh`. You can also modify the OpenPERouter log level in the same file:
+The node index is chosen from the node index interface. If the node has the n-th IP address inside the subnet, its node index will be n. E.g., if the subnet is `192.0.2.0/24`, and the node's IP is `192.0.2.5`, then the node's index is 5. Each node must have a unique IP address on the node index. The node index interface and log level can be configured by modifying file `extras/config/node-config.yaml`:
 
-```bash
-#!/usr/bin/env bash
-# Set nodeidx as the nodeIndex.interfaceName in /var/lib/openperouter/node-config.yaml.
-
-set -euo pipefail
-
-NODE_IDX_INTF="${1:-nodeidx}"
-CONFIG_PATH="/var/lib/openperouter/node-config.yaml"
-
-echo "Deriving nodeIndex from ${NODE_IDX_INTF}"
-
-mkdir -p "$(dirname "${CONFIG_PATH}")"
-cat > "${CONFIG_PATH}" <<EOF
+```yaml
 nodeIndex:
-  interfaceName: ${NODE_IDX_INTF}
+  interfaceName: nodeidx
 logLevel: debug
-EOF
 ```
 
-In this specific case, we have a systemd service that runs script `openperouter-node-index.sh` that writes file `/var/lib/openperouter/node-config.yaml`. What's important here is that this last file exists with the `nodeIndex` and `logLevel` configuration stanzas.
+This file is deployed to `/var/lib/openperouter/node-config.yaml` on each node via the butane MachineConfig.
 
 ## Configuring the MTU
 
