@@ -409,7 +409,4 @@ sudo coreos-installer iso ignition remove "$OUTPUT_ISO" 2>/dev/null || true
 echo "Embedding modified ignition into ISO..."
 sudo coreos-installer iso ignition embed -i "$MODIFIED_IGN" "$OUTPUT_ISO"
 
-# https://access.redhat.com/solutions/6178742
-sudo coreos-installer iso kargs modify --append console=ttyS0,115200n8 "$OUTPUT_ISO"
-
 echo "Done! Modified ISO: $OUTPUT_ISO"
