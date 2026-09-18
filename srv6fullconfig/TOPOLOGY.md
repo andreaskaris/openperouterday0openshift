@@ -17,9 +17,9 @@ with a TOR router peering externally.
                        │   Loopback:  fc00:0:20::1    │
                        │   SRv6 pfx:  fd00:20::/48    │
                        │   VRF red:                   │
-                       │     lored:    10.10.20.1/32   │
-                       │     lo-extra: 10.100.0.1/32   │
-                       │       (DNS + NTP server)      │
+                       │     lored:    10.10.20.1/32  │
+                       │     lo-extra: 10.100.0.1/32  │
+                       │       (DNS + NTP server)     │
                        └──────────┬───────────────────┘
                                   │ ISIS L1 (IPv6-only)
                                   │ enp2s0 (192.168.111.0/24
@@ -28,14 +28,21 @@ with a TOR router peering externally.
                  │                │                │
      ┌────────────────┐   ┌────────────────┐   ┌────────────────┐
      │  master-0      │   │  master-1      │   │  master-2      │
+     │----------------│   │----------------│   │----------------│
      │  EVPN RR       │   │  EVPN RR       │   │  EVPN RR       │
-     │  lo:  fd00::2  │   │  lo:  fd00::3  │   │  lo:  fd00::4  │
      │  SRv6:         │   │  SRv6:         │   │  SRv6:         │
      │   fd00:2:2::/48│   │   fd00:2:3::/48│   │   fd00:2:4::/48│
+     │----------------│   │----------------│   │----------------│
+     │Host Netns:     │   │Host Netns:     │   │Host Netns:     │
+     │  br0/br-ex:    │   │  br0/br-ex:    │   │  br0/br-ex:    │
+     │  .110.2        │   │  .110.3        │   │  .110.4        │
+     │----------------|   │----------------|   │----------------|
+     │perouter Netns: │   │perouter Netns: │   │perouter Netns: │
+     │  lo:  fd00::2  │   │  lo:  fd00::3  │   │  lo:  fd00::4  │
+     │  enp2s0:       │   │  enp2s0:       │   │  enp2s0:       │
      │  .111.80       │   │  .111.81       │   │  .111.82       │
      │  ::50          │   │  ::51          │   │  ::52          │
      │                │   │                │   │                │
-     │  br0: .110.2   │   │  br0: .110.3   │   │  br0: .110.4   │
      │  VRF red:      │   │  VRF red:      │   │  VRF red:      │
      │   br-pe-210    │   │   br-pe-210    │   │   br-pe-210    │
      │   .110.1/24    │   │   .110.1/24    │   │   .110.1/24    │
@@ -46,14 +53,21 @@ with a TOR router peering externally.
 
      ┌────────────────┐   ┌────────────────┐
      │  worker-0      │   │  worker-1      │   ...
+     │----------------│   │----------------│
      │  EVPN Client   │   │  EVPN Client   │
-     │  lo:  fd00::5  │   │  lo:  fd00::6  │
      │  SRv6:         │   │  SRv6:         │
      │   fd00:2:5::/48│   │   fd00:2:6::/48│
+     │----------------│   │----------------│
+     │Host Netns:     │   │Host Netns:     │
+     │  br0/br-ex:    │   │  br0/br-ex:    │
+     │  .110.5        │   │  .110.6        │
+     │----------------|   │----------------|
+     │perouter Netns: │   │perouter Netns: │
+     │  lo:  fd00::5  │   │  lo:  fd00::6  │
+     │  enp2s0:       │   │  enp2s0:       │
      │  .111.83       │   │  .111.84       │
      │  ::53          │   │  ::54          │
      │                │   │                │
-     │  br0: .110.5   │   │  br0: .110.6   │
      │  VRF red:      │   │  VRF red:      │
      │   br-pe-210    │   │   br-pe-210    │
      │   .110.1/24    │   │   .110.1/24    │
@@ -66,11 +80,6 @@ with a TOR router peering externally.
 
 ## Addressing Scheme
 
-Due to legacy reasons, we currently use interface br0 to determine the node type.
-The node type (master vs worker) is determined from the last octet of `br0` IPv4 —
-if it matches 2, 3, or 4, the node is a master (EVPN RR); otherwise it is a worker
-(EVPN client).
-
 Bridge, loopback, router ID, and SRv6 locator addresses are derived from the node
 index — the host position within the `192.0.2.0/24` subnet on the `nodeidx` dummy
 interface (e.g. `192.0.2.2` → index 2). For these, the node address is simply the
@@ -79,7 +88,10 @@ subnet base + node index.
 The `enp2s0` addresses (ISIS underlay interface) are assigned statically in the
 agent-config and do not follow the node index scheme.
 
-| Node | Index | enp2s0 IPv4 | enp2s0 IPv6 | Bridge IPv4 | Bridge IPv6 |
+Node types are derived from the node's hostname (if it starts with `master` or `control-plane`,
+the node is of type `master`).
+
+| Node | Index | enp2s0 IPv4 | enp2s0 IPv6 | Bridge br0/br-ex IPv4 | Bridge br0/br-ex IPv6 |
 |---|---|---|---|---|---|
 | master-0 (RR) | 2 | 192.168.111.80 | fd2e:6f44:5dd8:c956::50 | 192.168.110.2 | fd00:110::2 |
 | master-1 (RR) | 3 | 192.168.111.81 | fd2e:6f44:5dd8:c956::51 | 192.168.110.3 | fd00:110::3 |
@@ -134,6 +146,8 @@ Concrete per-node values:
 | SRv6 prefix | fd00:20::/48 |
 | uN (node SID) | fd00:20:: |
 | uDT46 (VRF decap) | fd00:20:0:1:: |
+| VRF red: lored | 10.10.20.1/32 |
+| VRF red: lo-extra | 10.100.0.1/32 (DNS + NTP) |
 
 ## BGP Peering (AS 65500, all iBGP)
 
