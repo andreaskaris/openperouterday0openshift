@@ -13,19 +13,19 @@ and copy the appropriate FRR configuration for the node role.
               │   TOR   │
               └────┬────┘
                    │  ISIS L1 (IPv6-only) + SRv6 (L3VPN)
-        ┌──────────┼──────────┐
-        │          │          │
-   ┌────┴───┐ ┌───┴────┐ ┌───┴────┐
-   │master-0│ │master-1│ │master-2│
-   │  (RR)  │ │  (RR)  │ │  (RR)  │
-   └────────┘ └────────┘ └────────┘
-        ◄── EVPN / VXLAN (L2VPN) ──►
-          reflected by all 3 masters
+         ┌─────────┼──────────┐
+         │         │          │
+    ┌────┴───┐ ┌───┴────┐ ┌───┴────┐
+    │master-0│ │master-1│ │master-2│
+    │  (RR)  │ │  (RR)  │ │  (RR)  │
+    └────────┘ └────────┘ └────────┘
+         ◄── EVPN / VXLAN (L2VPN) ──►
+           reflected by all 3 masters
 
-   ┌────────┐ ┌────────┐
-   │worker-0│ │worker-1│  ...
-   │(client)│ │(client)│
-   └────────┘ └────────┘
+    ┌────────┐ ┌────────┐
+    │worker-0│ │worker-1│  ...
+    │(client)│ │(client)│
+    └────────┘ └────────┘
 ```
 
 - **North-south** (nodes ↔ TOR): L3VPN over SRv6 (IPv6-only ISIS underlay)
@@ -383,7 +383,7 @@ For North/South traffic from/to OpenShift and the OpenShift external overlay net
 
 - **`name`**: Identifier referenced by `l2vni.routingDomain`.
 - **`vrf`**: The VRF used inside the `perouter` namespace.
-- **`rdAssignedNumber`**: The route distinguisher part, joined to the BGP ASN to form the full Route Distinguisher: `ASN:rdAssignedNumber`.
+- **`rdAssignedNumber`**: Joined to the BGP ASN to form the full Route Distinguisher: `ASN:rdAssignedNumber`.
 - **`exportRTs`/`importRTs`**: The exact export and import Route Targets.
 
 > **NOTE:** Should additional raw configuration be needed, consult the [API reference](https://openperouter.github.io/docs/api-reference/) for available options.
