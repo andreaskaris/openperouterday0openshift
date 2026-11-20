@@ -36,4 +36,27 @@ done
 echo "  set-cluster-mtu.yaml"
 cp "${EXTRASDIR}/config/set-cluster-mtu.yaml" "${output_dir}/set-cluster-mtu.yaml"
 
+if [[ -v SSH_PUB_KEY ]]; then
+  for role in master worker; do
+    echo "  ${role}-ssh.yaml"
+    cat <<EOF > "${output_dir}/${role}-ssh.yaml"
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: ${role}
+  name: 99-${role}-ssh
+spec:
+  config:
+    ignition:
+      version: 3.1.0
+    passwd:
+      users:
+      - name: core
+        sshAuthorizedKeys:
+        - ${SSH_PUB_KEY}
+EOF
+  done
+fi
+
 echo "==> MachineConfig manifests generated."
