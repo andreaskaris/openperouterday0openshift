@@ -1,0 +1,56 @@
+variant: openshift
+version: 4.20.0
+metadata:
+  name: 97-master-grout-hw
+  labels:
+    machineconfiguration.openshift.io/role: master
+storage:
+  files:
+    - path: /etc/systemd/network/10-underlayvf-intel.link
+      mode: 0644
+      overwrite: true
+      contents:
+        inline: |
+          [Match]
+          Property=ID_NET_NAME_ONBOARD=eno12399v0
+
+          [Link]
+          NamePolicy=keep kernel database onboard slot path
+          AlternativeName=underlayvf
+    - path: /etc/systemd/network/10-underlayvf-mellanox.link
+      mode: 0644
+      overwrite: true
+      contents:
+        inline: |
+          [Match]
+          Property=ID_NET_NAME_SLOT=ens1f0v0
+
+          [Link]
+          NamePolicy=keep kernel database onboard slot path
+          AlternativeName=underlayvf
+    # The L2Trunk selects its VF by PF name and VF index: the trunkpf alias gives
+    # the PF the same name on every node (eno12399 on Intel, ens1f0np0 on Mellanox).
+    # The Mellanox nodes also have an onboard eno12399, so the Intel rule is pinned
+    # to master-2's PF MAC: otherwise both PFs race for the (unique) trunkpf altname.
+    - path: /etc/systemd/network/10-trunkpf-intel.link
+      mode: 0644
+      overwrite: true
+      contents:
+        inline: |
+          [Match]
+          PermanentMACAddress=30:3e:a7:0b:e8:6c
+
+          [Link]
+          NamePolicy=keep kernel database onboard slot path
+          AlternativeName=trunkpf
+    - path: /etc/systemd/network/10-trunkpf-mellanox.link
+      mode: 0644
+      overwrite: true
+      contents:
+        inline: |
+          [Match]
+          Property=ID_NET_NAME_SLOT=ens1f0np0
+
+          [Link]
+          NamePolicy=keep kernel database onboard slot path
+          AlternativeName=trunkpf
