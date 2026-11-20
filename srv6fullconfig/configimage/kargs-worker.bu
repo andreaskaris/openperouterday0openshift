@@ -1,0 +1,10 @@
+variant: openshift
+version: 4.20.0
+metadata:
+  name: 98-worker-kargs
+  labels:
+    machineconfiguration.openshift.io/role: worker
+openshift:
+  kernel_arguments:
+  - console=tty0
+  - console=ttyS0,115200n8
