@@ -26,7 +26,7 @@ Deploy:
 
 Start a `tmux`. Inside the `tmux` session, run the following steps or run `redeploy.sh` (see below).
 
-Build the appliance according to https://github.com/openshift-kni/openperouterday0openshift/blob/main/README.md:
+Build the appliance:
 
 ```
 pushd srv6fullconfig/
