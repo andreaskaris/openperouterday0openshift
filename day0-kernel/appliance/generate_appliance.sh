@@ -113,4 +113,5 @@ echo "==> Appliance ISO built: ${appliance_iso}"
 # ============================================================
 # The appliance tool writes cache/*/cluster-resources into asset_dir,
 # so it serves as both the config dir and the ocp_dir for patching.
+export IMAGE_OPENPEROUTER_OPERATOR
 "${SCRIPTDIR}/patch_appliance.sh" "${appliance_iso}" "${asset_dir}"

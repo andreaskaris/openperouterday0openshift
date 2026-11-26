@@ -34,6 +34,18 @@ if [[ ! -f "${RAWCONFIG_BU}" ]]; then
 fi
 
 # ============================================================
+# Step 0: Replace openperouter-operator image in quadlet files
+# This is a temporary hack until https://github.com/openperouter/openperouter/pull/961 and its
+# downstream version land.
+# ============================================================
+if [[ -z "${IMAGE_OPENPEROUTER_OPERATOR:-}" ]]; then
+  echo "IMAGE_OPENPEROUTER_OPERATOR must be set and non-empty."
+  exit 1
+fi
+echo "Patching appliance images with IMAGE_OPENPEROUTER_OPERATOR: ${IMAGE_OPENPEROUTER_OPERATOR}"
+for f in extras/quadlets/*.container; do sed -i 's|^Image=.*|Image='"${IMAGE_OPENPEROUTER_OPERATOR}"'|' "${f}";done
+
+# ============================================================
 # Step 1: Compile openperouter-master.bu → ignition
 # ============================================================
 echo "==> Compiling openperouter-master.bu..."
