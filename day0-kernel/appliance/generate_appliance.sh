@@ -25,8 +25,9 @@ fi
 SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 APPLIANCE_IMAGE="${APPLIANCE_IMAGE:-quay.io/edge-infrastructure/openshift-appliance:latest}"
-OCP_RELEASE_VERSION="${OCP_RELEASE_VERSION-4.22}"
-OPENSHIFT_RELEASE_IMAGE="${OPENSHIFT_RELEASE_IMAGE-quay.io/openshift-release-dev/ocp-release:4.22.3-x86_64}"
+OCP_RELEASE_VERSION="${OCP_RELEASE_VERSION:-4.22}"
+OPENSHIFT_RELEASE_IMAGE="${OPENSHIFT_RELEASE_IMAGE:-quay.io/openshift-release-dev/ocp-release:4.22.3-x86_64}"
+IMAGE_OPENPEROUTER_OPERATOR="${IMAGE_OPENPEROUTER_OPERATOR:-quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-5-0:latest}"
 
 pull_secret_file="${1:-}"
 ssh_key_file="${2:-}"
@@ -75,6 +76,12 @@ fi
 yq -y ".ocpRelease = {version: \"${OCP_RELEASE_VERSION}\", url: \"${OPENSHIFT_RELEASE_IMAGE}\"}" "${config}" > "${config_tmp}"
 mv "${config_tmp}" "${config}"
 
+# Set additionalImages
+yq -y ".additionalImages = ["\
+"{name: \"${IMAGE_OPENPEROUTER_OPERATOR}\"},"\
+"{name: \"quay.io/mavazque/ign-converter:latest\"},"\
+"{name: \"registry.redhat.io/rhel9/support-tools:latest\"}]" "${config}" > "${config_tmp}"
+mv "${config_tmp}" "${config}"
 
 # ============================================================
 # Step 2: Build the appliance live ISO
