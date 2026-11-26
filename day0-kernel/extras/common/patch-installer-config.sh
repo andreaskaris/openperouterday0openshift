@@ -41,7 +41,13 @@ if [ ! -f "$ENV_FILE" ]; then
 fi
 
 if grep -q "^ENABLE_VIRTUAL_INTERFACES=" "$ENV_FILE"; then
-    echo "ENABLE_VIRTUAL_INTERFACES already set. Skipping."
+    echo "ENABLE_VIRTUAL_INTERFACES already set, updating."
+    if sed -i 's/ENABLE_VIRTUAL_INTERFACES=.*/ENABLE_VIRTUAL_INTERFACES=true/' "$ENV_FILE"; then
+        echo "SUCCESS: ENABLE_VIRTUAL_INTERFACES injection complete."
+    else
+        echo "ERROR: Failed to replace ENABLE_VIRTUAL_INTERFACES in $ENV_FILE."
+        exit 1
+    fi
 else
     echo "Injecting ENABLE_VIRTUAL_INTERFACES=true..."
     if echo "ENABLE_VIRTUAL_INTERFACES=true" >> "$ENV_FILE"; then
@@ -53,7 +59,13 @@ else
 fi
 
 if grep -q "^DISABLED_HOST_VALIDATIONS=" "$ENV_FILE"; then
-    echo "DISABLED_HOST_VALIDATIONS already set. Skipping."
+    echo "DISABLED_HOST_VALIDATIONS already set, updating."
+    if sed -i 's/DISABLED_HOST_VALIDATIONS=.*/DISABLED_HOST_VALIDATIONS=belongs-to-majority-group/' "$ENV_FILE"; then
+        echo "SUCCESS: DISABLED_HOST_VALIDATIONS injection complete."
+    else
+        echo "ERROR: Failed to replace DISABLED_HOST_VALIDATIONS in $ENV_FILE."
+        exit 1
+    fi
 else
     echo "Injecting DISABLED_HOST_VALIDATIONS=belongs-to-majority-group..."
     if echo "DISABLED_HOST_VALIDATIONS=belongs-to-majority-group" >> "$ENV_FILE"; then
