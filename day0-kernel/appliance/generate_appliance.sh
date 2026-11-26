@@ -25,6 +25,8 @@ fi
 SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 APPLIANCE_IMAGE="${APPLIANCE_IMAGE:-quay.io/edge-infrastructure/openshift-appliance:latest}"
+OCP_RELEASE_VERSION="${OCP_RELEASE_VERSION-4.22}"
+OPENSHIFT_RELEASE_IMAGE="${OPENSHIFT_RELEASE_IMAGE-quay.io/openshift-release-dev/ocp-release:4.22.3-x86_64}"
 
 pull_secret_file="${1:-}"
 ssh_key_file="${2:-}"
@@ -55,12 +57,24 @@ fi
 
 pull_secret="$(jq -c . "${pull_secret_file}")"
 
-yq -y ".pullSecret = $(echo "${pull_secret}" | jq -R .)" "${base_config}" > "${config}"
+config_tmp=$(mktemp)
+cp "${base_config}" "${config}"
 
+# Replace pull secret
+yq -y ".pullSecret = $(echo "${pull_secret}" | jq -R .)" "${config}" > "${config_tmp}"
+mv "${config_tmp}" "${config}"
+
+# Replace ssh key
 if [[ -n "${ssh_key_file}" ]]; then
-    ssh_key="$(cat "${ssh_key_file}")"
-    yq -y ".sshKey = \"${ssh_key}\"" "${config}" > "${config}.tmp" && mv "${config}.tmp" "${config}"
+  ssh_key="$(cat "${ssh_key_file}")"
+  yq -y ".sshKey = \"${ssh_key}\"" "${config}" > "${config_tmp}"
+  mv "${config_tmp}" "${config}"
 fi
+
+# Replace OCP release image
+yq -y ".ocpRelease = {version: \"${OCP_RELEASE_VERSION}\", url: \"${OPENSHIFT_RELEASE_IMAGE}\"}" "${config}" > "${config_tmp}"
+mv "${config_tmp}" "${config}"
+
 
 # ============================================================
 # Step 2: Build the appliance live ISO
