@@ -15,7 +15,6 @@
 # Requires: coreos-installer, jq, yq, butane, podman
 
 set -euo pipefail
-set -x
 
 if ! echo '{}' | yq -y '.' > /dev/null 2>&1; then
     echo "ERROR: python yq required (pip install yq)" >&2
